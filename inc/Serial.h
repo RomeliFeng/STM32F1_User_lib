@@ -13,29 +13,31 @@
 #include "misc.h"
 #include <stdlib.h>
 #include <stdio.h>
+
 extern char USART1_RX_Buf[256];			//½ÓÊÕ»º´æÆ÷
-extern uint8_t USART1_RX_SP;				//½ÓÊÕ»º´æÆ÷Ö¸Õë
+extern uint8_t USART1_RX_SP;			//½ÓÊÕ»º´æÆ÷Ö¸Õë
 extern uint8_t USART1_Read_SP;			//»º´æÆ÷¶ÁÈ¡Ö¸Õë
 extern uint8_t USART1_Read_Available;	//»º³åÆ÷Î´¶Á×Ö½Ú
-class Serial{
+class SerialClass{
 public:
-	Serial();
-	static void begin(uint32_t BaudRate);
-	static void print(char *data);
-	static void print(long data);
-	static void print(int data);
-	static void print(double data,uint8_t ndigit);
-	static void println(char *data);
-	static void println(long data);
-	static void println(int data);
-	static void println(double data,uint8_t ndigit);
-	static uint8_t print_c(char c);
-	static void print_s(char* str);
-	static uint8_t available();
-	static char read();
-	static void read(char *buf,uint8_t len);
+	void begin(uint32_t BaudRate);
+	void print(char *data);
+	void print(long data);
+	void print(int data);
+	void print(float data,uint8_t ndigit);
+	void print(double data,uint8_t ndigit);
+	void println(char *data);
+	void println(long data);
+	void println(int data);
+	void println(float data,uint8_t ndigit);
+	void println(double data,uint8_t ndigit);
+	uint8_t print_c(char c);
+	void print_s(char* str);
+	uint8_t available();
+	char read();
+	void read(char *buf,uint8_t len);
 private:
 };
 
-
+extern SerialClass Serial;
 #endif /* SERIAL_H_ */

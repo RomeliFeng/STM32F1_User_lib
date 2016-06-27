@@ -6,16 +6,15 @@
  */
 #include "Serial.h"
 
+SerialClass Serial;
+
 char USART1_RX_Buf[256];			//接收缓存器
 uint8_t USART1_RX_SP = 0;				//接收缓存器指针
 uint8_t USART1_Read_SP = 0;			//缓存器读取指针
 uint8_t USART1_Read_Available = 0;	//缓冲器未读字节
 
-Serial::Serial()
-{
 
-}
-void Serial::begin(uint32_t BaudRate)
+void SerialClass::begin(uint32_t BaudRate)
 {
 	/*定义初始化用结构体*/
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -61,7 +60,7 @@ void Serial::begin(uint32_t BaudRate)
 	NVIC_Init(&NVIC_InitStructure);
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 }
-//void Serial::print(char *format,...)
+//void SerialClass::print(char *format,...)
 //{
 //	va_list argp;
 //	va_start(argp,format);
@@ -69,77 +68,76 @@ void Serial::begin(uint32_t BaudRate)
 //	va_end(argp);
 //}
 
-void Serial::print(char *data)
+void SerialClass::print(char *data)
 {
 	print_s(data);
 }
-void Serial::print(long data)
+void SerialClass::print(long data)
 {
 	char str[20];
 	sprintf(str, "%ld", data);
 	print_s(str);
 }
-void Serial::print(int data)
+void SerialClass::print(int data)
 {
 	char str[20];
 	sprintf(str, "%d", data);
 	print_s(str);
 }
-void Serial::print(double data, uint8_t ndigit)
+void SerialClass::print(float data, uint8_t ndigit)
 {
-	char tmp[4];
 	char str[20];
-	//sprintf(tmp,"%d",ndigit);
-	sprintf(str, "%f", data);
+	char format[6] = "%.0f";
+	format[2] = 0x30 + ndigit;
+	sprintf(str, format, data);
 	print_s(str);
 }
-//void Serial::print(double data,uint8_t ndigit)
-//{
-//	char* str;
-//	int decpt;
-//	int sign;
-//	str=fcvt(data,ndigit,&decpt,&sign);
-//	sign?print_c('-'):0;
-//	while(decpt--)
-//	{
-//		print_c(*str);
-//		str++;
-//	}
-//	print_c('.');
-//	while(*str!='\0')
-//	{
-//		print_c(*str);
-//		str++;
-//	}
-//}
-void Serial::println(char *data)
+void SerialClass::print(double data, uint8_t ndigit)
+{
+	char str[20];
+	char format[6] = "%.0lf";
+	format[2] = 0x30 + ndigit;
+	sprintf(str, format, data);
+	print_s(str);
+}
+void SerialClass::println(char *data)
 {
 	print(data);
+	print_c('\r');
 	print_c('\n');
 }
-void Serial::println(long data)
+void SerialClass::println(long data)
 {
 	print(data);
+	print_c('\r');
 	print_c('\n');
 }
-void Serial::println(int data)
+void SerialClass::println(int data)
 {
 	print(data);
+	print_c('\r');
 	print_c('\n');
 }
-void Serial::println(double data, uint8_t ndigit)
+void SerialClass::println(float data, uint8_t ndigit)
 {
 	print(data, ndigit);
+	print_c('\r');
 	print_c('\n');
 }
-uint8_t Serial::print_c(char c)
+void SerialClass::println(double data, uint8_t ndigit)
+{
+	print(data, ndigit);
+	print_c('\r');
+	print_c('\n');
+}
+uint8_t SerialClass::print_c(char c)
 {
 	USART_SendData(USART1, c);
 	while (!(USART1->SR & USART_FLAG_TXE))
 		;
 	return 1;
 }
-void Serial::print_s(char* str)
+void SerialClass::print_s(char* str)
 {
 	while (*str != '\0')
 	{
@@ -151,7 +149,7 @@ void Serial::print_s(char* str)
 /*串口缓冲器的中断程序*/
 extern "C" void USART1_IRQHandler(void)
 {
-	if(USART_GetFlagStatus(USART1, USART_FLAG_ORE) != RESET)
+	if (USART_GetFlagStatus(USART1, USART_FLAG_ORE) != RESET)
 		USART_ReceiveData(USART1);
 	if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
 	{
@@ -165,18 +163,18 @@ extern "C" void USART1_IRQHandler(void)
 //	trace_printf("%d  %d\n", USART1_RX_SP, USART1_Read_Available);
 }
 
-uint8_t Serial::available()
+uint8_t SerialClass::available()
 {
 	return USART1_Read_Available;
 }
 
-char Serial::read()
+char SerialClass::read()
 {
 	USART1_Read_Available--;
 	return USART1_RX_Buf[USART1_Read_SP++];
 }
 
-void Serial::read(char* buf, uint8_t len)
+void SerialClass::read(char* buf, uint8_t len)
 {
 	while (len--)
 	{

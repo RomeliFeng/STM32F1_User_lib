@@ -6,7 +6,9 @@
  */
 #include "I2C.h"
 
-void I2C::init()
+I2CClass I2C;
+
+void I2CClass::init()
 {
 	I2C_InitTypeDef I2C_InitStructure;
 
@@ -36,7 +38,7 @@ void I2C_GPIO_Init()
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
 
-void I2C::send(uint8_t D_Add, uint8_t data)
+void I2CClass::send(uint8_t D_Add, uint8_t data)
 {
 //	//等待总线空闲
 //	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
@@ -58,7 +60,7 @@ void I2C::send(uint8_t D_Add, uint8_t data)
 	send(D_Add, &data, 1);
 }
 
-void I2C::send(uint8_t D_Add, uint8_t W_Add, uint8_t data)
+void I2CClass::send(uint8_t D_Add, uint8_t W_Add, uint8_t data)
 {
 //	//等待总线空闲
 //	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
@@ -84,7 +86,7 @@ void I2C::send(uint8_t D_Add, uint8_t W_Add, uint8_t data)
 	send(D_Add, W_Add, &data, 1);
 }
 
-void I2C::send(uint8_t D_Add, uint8_t* dataBuf, uint8_t size)
+void I2CClass::send(uint8_t D_Add, uint8_t* dataBuf, uint8_t size)
 {
 	//等待总线空闲
 	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
@@ -110,7 +112,7 @@ void I2C::send(uint8_t D_Add, uint8_t* dataBuf, uint8_t size)
 	//发送停止时序
 	I2C_GenerateSTOP(I2C1, ENABLE);
 }
-void I2C::send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf, uint8_t size)
+void I2CClass::send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf, uint8_t size)
 {
 	//等待总线空闲
 	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
@@ -141,7 +143,7 @@ void I2C::send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf, uint8_t size)
 	I2C_GenerateSTOP(I2C1, ENABLE);
 }
 
-uint8_t I2C::receive(uint8_t D_Add)
+uint8_t I2CClass::receive(uint8_t D_Add)
 {
 	uint8_t data;
 	receive(D_Add, &data, 1);
@@ -176,7 +178,7 @@ uint8_t I2C::receive(uint8_t D_Add)
 	return data;
 }
 
-uint8_t I2C::receive(uint8_t D_Add, uint8_t R_Add)
+uint8_t I2CClass::receive(uint8_t D_Add, uint8_t R_Add)
 {
 	uint8_t data;
 	receive(D_Add, R_Add, &data, 1);
@@ -218,7 +220,7 @@ uint8_t I2C::receive(uint8_t D_Add, uint8_t R_Add)
 	return data;
 }
 
-void I2C::receive(uint8_t D_Add, uint8_t *dataBuf, uint8_t size)
+void I2CClass::receive(uint8_t D_Add, uint8_t *dataBuf, uint8_t size)
 {
 	//等待总线空闲
 	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
@@ -266,7 +268,7 @@ void I2C::receive(uint8_t D_Add, uint8_t *dataBuf, uint8_t size)
 	I2C_AcknowledgeConfig(I2C1, ENABLE);
 }
 
-void I2C::receive(uint8_t D_Add, uint8_t R_Add, uint8_t* dataBuf, uint8_t size)
+void I2CClass::receive(uint8_t D_Add, uint8_t R_Add, uint8_t* dataBuf, uint8_t size)
 {
 	//等待总线空闲
 	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))

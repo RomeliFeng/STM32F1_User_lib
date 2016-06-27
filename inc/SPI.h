@@ -23,13 +23,15 @@
 #define SPI_Speed_562_5K SPI_BaudRatePrescaler_128
 #define SPI_Speed_281_25K SPI_BaudRatePrescaler_256
 
-class SPI
+class SPIClass
 {
 public:
-	static void init();
-	static uint8_t transfer(uint8_t data);
+	void init();
+	uint8_t transfer(uint8_t data);
 };
 
 void SPI_GPIO_Init();
+
+extern SPIClass SPI;
 
 #endif /* SPI_H_ */

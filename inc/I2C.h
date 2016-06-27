@@ -18,20 +18,22 @@
 
 void I2C_GPIO_Init();
 
-class I2C
+class I2CClass
 {
 public:
-	static void init();
-	static void send(uint8_t D_Add, uint8_t data);
-	static void send(uint8_t D_Add, uint8_t W_Add, uint8_t data);
-	static void send(uint8_t D_Add, uint8_t *dataBuf, uint8_t size);
-	static void send(uint8_t D_Add, uint8_t W_Add, uint8_t *dataBuf,
+	void init();
+	void send(uint8_t D_Add, uint8_t data);
+	void send(uint8_t D_Add, uint8_t W_Add, uint8_t data);
+	void send(uint8_t D_Add, uint8_t *dataBuf, uint8_t size);
+	void send(uint8_t D_Add, uint8_t W_Add, uint8_t *dataBuf,
 			uint8_t size);
-	static uint8_t receive(uint8_t D_Add);
-	static uint8_t receive(uint8_t D_Add, uint8_t R_Add);
-	static void  receive(uint8_t D_Add, uint8_t *dataBuf, uint8_t size);
-	static void receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
+	uint8_t receive(uint8_t D_Add);
+	uint8_t receive(uint8_t D_Add, uint8_t R_Add);
+	void  receive(uint8_t D_Add, uint8_t *dataBuf, uint8_t size);
+	void receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 			uint8_t size);
 };
 
+
+extern I2CClass I2C;
 #endif /* I2C_H_ */

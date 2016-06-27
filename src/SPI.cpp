@@ -6,6 +6,8 @@
  */
 #include "SPI.h"
 
+SPIClass SPI;
+
 void SPI_GPIO_Init()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -13,23 +15,26 @@ void SPI_GPIO_Init()
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
+	//SPI CLK
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
+	//SPI MISO
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
 
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
+	//SPI MOSI
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
 
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 }
 
-void SPI::init()
+void SPIClass::init()
 {
 	SPI_InitTypeDef SPI_InitStructure;
 
@@ -48,10 +53,11 @@ void SPI::init()
 	SPI_Cmd(SPI1, ENABLE);
 }
 
-uint8_t SPI::transfer(uint8_t data)
+uint8_t SPIClass::transfer(uint8_t data)
 {
 	SPI_I2S_SendData(SPI1, data);
-	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET)		//等待时钟结束，以便接收数据
+	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET)
+		//等待时钟结束，以便接收数据
 		;
 	return SPI_I2S_ReceiveData(SPI1);
 }
