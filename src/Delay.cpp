@@ -6,7 +6,6 @@
  */
 
 #include "Delay.h"
-#include "diag/Trace.h"
 
 SystickClass Systick;
 
