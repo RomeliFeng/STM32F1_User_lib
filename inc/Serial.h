@@ -10,9 +10,6 @@
 #define SERIAL_H_
 
 #include "stm32f10x.h"
-#include "misc.h"
-#include <stdlib.h>
-#include <stdio.h>
 
 extern char USART1_RX_Buf[256];			//接收缓存器
 extern uint8_t USART1_RX_SP;			//接收缓存器指针

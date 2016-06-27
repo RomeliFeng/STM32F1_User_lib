@@ -5,6 +5,8 @@
  *      Author: Romeli
  */
 #include "Serial.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 SerialClass Serial;
 
