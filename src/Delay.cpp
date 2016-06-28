@@ -7,16 +7,9 @@
 
 #include "Delay.h"
 
-SystickClass Systick;
-
 static volatile uint64_t nTime_now = 0;
 uint64_t nTime_last;
 
-
-SystickClass::SystickClass()
-{
-	SysTick_Init();
-}
 
 void SysTick_Init()
 {
