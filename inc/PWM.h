@@ -10,17 +10,22 @@
 
 #include <stm32f10x.h>
 
-class PWM
+#define OC1EN 1
+#define OC2EN 0
+#define OC3EN 0
+#define OC4EN 0
+
+class PWMClass
 {
 public:
-	PWM();
-	static void init(uint16_t Period, uint16_t Duty);
-	static void set(uint16_t Duty = 0);
-	static void set(uint8_t ch, uint16_t Duty);
+	void init(uint16_t Period, uint16_t Duty);
+	void set(uint16_t Duty = 0);
+	void set(uint8_t ch, uint16_t Duty);
 private:
 };
 
 void TIM2_GPIO_Config();
 void TIM2_Mode_Config(uint16_t Period, uint16_t Duty);
 
+extern PWMClass PWM;
 #endif /* PWM_H_ */
