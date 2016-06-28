@@ -14,6 +14,7 @@ uint64_t nTime_last;
 void SysTick_Init()
 {
 	SysTick_Config((SystemCoreClock / 1000000) - 5);	//Set SysTick timer=us
+	NVIC_SetPriority(SysTick_IRQn,0);					//Set SysTick interrupt
 //	SysTick->CTRL&=SysTick_CTRL_ENABLE_Msk;			//Disable SysTick
 }
 
