@@ -135,7 +135,7 @@ void SerialClass::println(double data, uint8_t ndigit)
 uint8_t SerialClass::print_c(char c)
 {
 	USART_SendData(USART1, c);
-	while (!(USART1->SR & USART_FLAG_TXE))
+ 	while (!(USART1->SR & USART_FLAG_TXE))
 		;
 	return 1;
 }

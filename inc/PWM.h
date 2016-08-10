@@ -10,17 +10,20 @@
 
 #include <stm32f10x.h>
 
-#define OC1EN 1
-#define OC2EN 0
-#define OC3EN 0
+#define OC1EN 0
+#define OC2EN 1
+#define OC3EN 1
 #define OC4EN 0
 
-class PWMClass
-{
+typedef enum _PWMCh {
+	PWMCh1, PWMCh2, PWMCh3, PWMCh4,
+} PWMCh;
+
+class PWMClass {
 public:
-	void init(uint16_t Period, uint16_t Duty);
-	void set(uint16_t Duty = 0);
-	void set(uint8_t ch, uint16_t Duty);
+	void Init(uint16_t Period, uint16_t Duty);
+	void Set(uint16_t Duty = 0);
+	void Set(PWMCh ch, uint16_t Duty);
 private:
 };
 

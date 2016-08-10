@@ -8,53 +8,46 @@
 
 PWMClass PWM;
 
-void PWMClass::init(uint16_t Period = 4095, uint16_t Duty = 0)
-{
+void PWMClass::Init(uint16_t Period = 4095, uint16_t Duty = 0) {
 	TIM2_GPIO_Config();
 	TIM2_Mode_Config(Period, Duty);
 }
-void PWMClass::set(uint16_t Duty)
-{
-	for (uint8_t i = 1; i < 5; i++)
-	{
-		set(i, Duty);
+void PWMClass::Set(uint16_t Duty) {
+	for (uint8_t i = 1; i < 5; i++) {
+		Set((PWMCh) i, Duty);
 	}
 }
-void PWMClass::set(uint8_t ch, uint16_t Duty)
-{
-	switch (ch)
-	{
+void PWMClass::Set(PWMCh ch, uint16_t Duty) {
+	switch (ch) {
+	case PWMCh1:
 #if OC1EN
-	case 1:
 		TIM_SetCompare1(TIM2, Duty);
 		break;
 #endif
+	case PWMCh2:
 #if OC2EN
-		case 2:
 		TIM_SetCompare2(TIM2, Duty);
-		break;
 #endif
+		break;
+	case PWMCh3:
 #if OC3EN
-		case 3:
 		TIM_SetCompare3(TIM2, Duty);
-		break;
 #endif
+		break;
+	case PWMCh4:
 #if OC4EN
-		case 4:
 		TIM_SetCompare4(TIM2, Duty);
-		break;
 #endif
+		break;
 	}
 }
-void TIM2_GPIO_Config()
-{
+void TIM2_GPIO_Config() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	//开启TIM2时钟
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 	//开启GPIOA时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	//配置PA0-PA3；复用推挽输出；最快速度50M；
-	GPIO_InitStructure.GPIO_Pin = 0
 #if OC1EN
 	GPIO_InitStructure.GPIO_Pin |= GPIO_Pin_0;
 #endif
@@ -72,8 +65,7 @@ void TIM2_GPIO_Config()
 
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
-void TIM2_Mode_Config(uint16_t Period, uint16_t Duty)
-{
+void TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	//初始化TIM
@@ -98,7 +90,6 @@ void TIM2_Mode_Config(uint16_t Period, uint16_t Duty)
 
 	//默认占空比一致故不进行占空比修改
 	//使能通道1
-#endif
 #if OC1EN
 	TIM_OC1Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
