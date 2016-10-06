@@ -11,10 +11,6 @@
 
 SerialClass Serial;
 
-#define USART1_RX_Frame_Size 64
-#define USART1_TX_Buf_Size 64
-#define USART1_RX_Buf_Size 64
-
 volatile static char USART1_TX_Buf[USART1_TX_Buf_Size];				//·¢ËÍ»º³åÆ÷
 volatile static uint8_t USART1_TX_SP = 0;				//·¢ËÍ»º³åÆ÷Ö¸Õë
 
