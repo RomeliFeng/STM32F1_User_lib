@@ -22,10 +22,10 @@ volatile static uint8_t USART1_Read_Frame = 0;			//读取帧标准
 
 #ifdef USE_DMA
 volatile static char USART1_TX_Buf2[USART1_TX_Buf_Size];		//备用发送缓冲器
-volatile static uint8_t USART1_TX_SP2 = 0;//备用发送缓冲器指针
-volatile static uint8_t USART1_TX_BUSY = 0;//发送DMA器忙标志
+volatile static uint8_t USART1_TX_SP2 = 0;		//备用发送缓冲器指针
+volatile static uint8_t USART1_TX_BUSY = 0;		//发送DMA器忙标志
 volatile static uint8_t USART1_TX_CH = 1;//发送缓冲期通道		1:USART1_TX_Buf;2:USART1_TX_Buf2
-volatile static char USART1_RX_DMA_Buf[USART1_RX_Frame_Size];//DMA接收缓存器
+volatile static char USART1_RX_DMA_Buf[USART1_RX_Frame_Size];		//DMA接收缓存器
 #endif
 
 void SerialClass::begin(uint32_t BaudRate) {
@@ -112,6 +112,7 @@ void SerialClass::begin(uint32_t BaudRate) {
 	DMA_Init(DMA1_Channel5, &DMA_InitStructure);
 	DMA_Cmd(DMA1_Channel5, ENABLE);
 
+	/*开启串口DMA发送和接收*/
 	USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
 	USART_DMACmd(USART1, USART_DMAReq_Rx, ENABLE);
 #endif
@@ -144,29 +145,29 @@ void SerialClass::print(double data, uint8_t ndigit) {
 
 void SerialClass::print(char *data, uint8_t len) {
 #ifdef USE_DMA
-	if (USART1_TX_BUSY) {
-		switch (USART1_TX_CH) {
-			case 1:
+	if (USART1_TX_BUSY) {				//判断DMA是否在使用中
+		switch (USART1_TX_CH) {			//判断正在使用的缓冲区
+		case 1:
 			while (len--) {
-				USART1_TX_Buf2[USART1_TX_SP2++] = *data++;
+				USART1_TX_Buf2[USART1_TX_SP2++] = *data++;	//缓冲区1正在发送中，填充缓冲区2
 			}
 			break;
-			case 2:
+		case 2:
 			while (len--) {
-				USART1_TX_Buf[USART1_TX_SP++] = *data++;
+				USART1_TX_Buf[USART1_TX_SP++] = *data++;	//缓冲区2正在发送中，填充缓冲区1
 			}
 			break;
-			default:
+		default:
 			break;
 		}
-	} else {
+	} else {		//DMA空闲填充缓冲区1并发送
 		while (len--) {
 			USART1_TX_Buf[USART1_TX_SP++] = *data++;
 		}
 		USART1_TX_CH = 1;
 		USART1_TX_BUSY = 1;
-		DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf;
-		DMA_SetCurrDataCounter(DMA1_Channel4, USART1_TX_SP);
+		DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf;		//更改DMA外设地址
+		DMA1_Channel4->CNDTR = USART1_TX_SP;				//传入发送字节个数
 		DMA_Cmd(DMA1_Channel4, ENABLE);
 	}
 #else
@@ -180,17 +181,17 @@ void SerialClass::write(char c) {
 #ifdef USE_DMA
 	print(&c, 1);
 #else
-	USART1->DR = (c & (uint16_t) 0x01FF);
+	USART1->DR = (c & (uint16_t) 0x01FF);			//发送一个字节并等待发送完成
 	while (!(USART1->SR & USART_FLAG_TXE))
-		;
+	;
 #endif
 }
 
 char SerialClass::read() {
-	char data = USART1_RX_Buf[USART1_Read_SP];
-	if (USART1_Read_SP != USART1_RX_SP)
+	char data = USART1_RX_Buf[USART1_Read_SP];		//取出数据
+	if (USART1_Read_SP != USART1_RX_SP)				//防止读取越界
 		++USART1_Read_SP;
-	if (USART1_Read_SP == USART1_RX_Buf_Size) {
+	if (USART1_Read_SP == USART1_RX_Buf_Size) {		//指针归零
 		USART1_Read_SP = 0;
 	}
 	return data;
@@ -201,18 +202,22 @@ void SerialClass::read(char *buf, uint8_t len) {
 		*++buf = read();
 	}
 }
-
+/*返回未读取字节个数*/
 uint8_t SerialClass::available() {
 	return USART1_RX_SP >= USART1_Read_SP ? USART1_RX_SP - USART1_Read_SP :
 	USART1_RX_Buf_Size - USART1_Read_SP + USART1_RX_SP;
 }
-
+/*一帧数据检测标志*/
 uint8_t SerialClass::checkFrame() {
 	if (USART1_Read_Frame != 0) {
 		USART1_Read_Frame = 0;
 		return 1;
 	} else
 		return 0;
+}
+
+void SerialClass::flush() {
+	USART1_Read_SP = USART1_RX_SP;
 }
 
 uint8_t SerialClass::getlen(char* data) {
@@ -228,7 +233,7 @@ extern "C" void USART1_IRQHandler(void) {
 		USART1_Read_Frame = 1;
 		USART_ReceiveData(USART1);
 #ifdef USE_DMA
-		DMA_Cmd(DMA1_Channel5, DISABLE);
+		DMA_Cmd(DMA1_Channel5, DISABLE);			//接收到1帧数据，从DMA保存到缓冲区
 		USART_ReceiveData(USART1);
 		uint8_t len = USART1_RX_Frame_Size - DMA1_Channel5->CNDTR;
 		DMA1_Channel5->CNDTR = USART1_RX_Frame_Size;
@@ -246,7 +251,7 @@ extern "C" void USART1_IRQHandler(void) {
 		USART1_RX_Buf[USART1_RX_SP] = USART1->DR;
 		USART1_RX_SP++;
 		if (USART1_RX_SP == USART1_RX_Buf_Size)
-			USART1_RX_SP = 0;
+		USART1_RX_SP = 0;
 	}
 #endif
 	if ((USART1->SR & USART_FLAG_ORE) != (uint16_t) RESET)
@@ -258,29 +263,29 @@ extern "C" void DMA1_Channel4_IRQHandler(void) {
 	DMA_ClearFlag(DMA1_FLAG_TC4);
 	DMA_Cmd(DMA1_Channel4, DISABLE);
 	switch (USART1_TX_CH) {
-		case 1:
+	case 1:
 		USART1_TX_SP = 0;
 		if (USART1_TX_SP2 != 0) {
 			USART1_TX_CH = 2;
 			DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf2;
-			DMA_SetCurrDataCounter(DMA1_Channel4, USART1_TX_SP2);
+			DMA1_Channel4->CNDTR = USART1_TX_SP2;
 			DMA_Cmd(DMA1_Channel4, ENABLE);
 		} else {
 			USART1_TX_BUSY = 0;
 		}
 		break;
-		case 2:
+	case 2:
 		USART1_TX_SP2 = 0;
 		if (USART1_TX_SP != 0) {
 			USART1_TX_CH = 1;
 			DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf;
-			DMA_SetCurrDataCounter(DMA1_Channel4, USART1_TX_SP);
+			DMA1_Channel4->CNDTR = USART1_TX_SP;
 			DMA_Cmd(DMA1_Channel4, ENABLE);
 		} else {
 			USART1_TX_BUSY = 0;
 		}
 		break;
-		default:
+	default:
 		break;
 	}
 }

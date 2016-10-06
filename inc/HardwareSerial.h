@@ -68,6 +68,7 @@ public:
 	uint8_t checkFrame();
 	char read();
 	void read(char* buf, uint8_t len);
+	void flush();
 private:
 	void print(char* data, uint8_t len);
 	uint8_t getlen(char* data);
