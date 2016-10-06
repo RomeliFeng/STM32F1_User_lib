@@ -53,11 +53,11 @@ public:
 	inline void println(int data, uint8_t base = 10) {
 		println((long) data, base);
 	}
-	inline void println(double data, uint8_t ndigit) {
+	inline void println(double data, uint8_t ndigit = 2) {
 		print(data, ndigit);
 		println();
 	}
-	inline void println(float data, uint8_t ndigit) {
+	inline void println(float data, uint8_t ndigit = 2) {
 		print((double) data, ndigit);
 	}
 	void print(char *data) {
