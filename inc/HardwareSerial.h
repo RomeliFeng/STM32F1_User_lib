@@ -18,7 +18,7 @@
 #define USART1_TX_Buf_Size 64
 #define USART1_RX_Buf_Size 64
 
-static char NewLine[] = {'\r','\n','\0'};
+static char NewLine[] = { '\r', '\n', '\0' };
 
 class SerialClass: public Parse {
 public:
@@ -32,8 +32,8 @@ public:
 		print((long) data, base);
 	}
 
-	void print(double data, uint8_t ndigit);
-	inline void print(float data, uint8_t ndigit) {
+	void print(double data, uint8_t ndigit = 2);
+	inline void print(float data, uint8_t ndigit = 2) {
 		print((double) data, ndigit);
 	}
 
