@@ -199,7 +199,7 @@ char SerialClass::read() {
 
 void SerialClass::read(char *buf, uint8_t len) {
 	while (len--) {
-		*++buf = read();
+		*buf++ = read();
 	}
 }
 /*返回未读取字节个数*/
