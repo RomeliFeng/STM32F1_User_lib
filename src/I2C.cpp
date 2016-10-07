@@ -15,12 +15,14 @@
 
 I2CClass I2C;
 
-union _I2C_Event_Flag {
+union _I2C_Event_Flag
+{
 	uint32_t All;
 	uint16_t Word[2];
 } I2C_Event_Flag;
 
-void I2CClass::Init() {
+void I2CClass::Init()
+{
 	I2C_InitTypeDef I2C_InitStructure;
 
 	I2C_GPIO_Init();
@@ -35,7 +37,8 @@ void I2CClass::Init() {
 	I2C_Cmd(I2C1, ENABLE);
 	I2C_Init(I2C1, &I2C_InitStructure);
 }
-void I2C_GPIO_Init() {
+void I2C_GPIO_Init()
+{
 	GPIO_InitTypeDef GPIO_InitStructure;
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
@@ -48,7 +51,8 @@ void I2C_GPIO_Init() {
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
 
-void I2CClass::Send_NoAdd(uint8_t D_Add, uint8_t data) {
+void I2CClass::Send_NoAdd(uint8_t D_Add, uint8_t data)
+{
 //	//等待总线空闲
 //	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
 //		;
@@ -69,7 +73,8 @@ void I2CClass::Send_NoAdd(uint8_t D_Add, uint8_t data) {
 	Send_NoAdd(D_Add, &data, 1);
 }
 
-void I2CClass::Send_NoAdd(uint8_t D_Add, uint8_t* dataBuf, uint8_t size) {
+void I2CClass::Send_NoAdd(uint8_t D_Add, uint8_t* dataBuf, uint8_t size)
+{
 	//等待总线空闲
 	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
 		;
@@ -82,7 +87,8 @@ void I2CClass::Send_NoAdd(uint8_t D_Add, uint8_t* dataBuf, uint8_t size) {
 	while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
 		;
 	//循环发送要写入的数据
-	while (size) {
+	while (size)
+	{
 		I2C_SendData(I2C1, *dataBuf);
 		while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 			;
@@ -94,7 +100,8 @@ void I2CClass::Send_NoAdd(uint8_t D_Add, uint8_t* dataBuf, uint8_t size) {
 	I2C_GenerateSTOP(I2C1, ENABLE);
 }
 
-void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t data) {
+void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t data)
+{
 //	//等待总线空闲
 //	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
 //		;
@@ -120,7 +127,8 @@ void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t data) {
 }
 
 void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
-		uint8_t size) {
+		uint8_t size)
+{
 	//等待总线空闲
 	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
 		;
@@ -137,7 +145,8 @@ void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 	while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 		;
 	//循环发送要写入的数据
-	while (size) {
+	while (size)
+	{
 		I2C_SendData(I2C1, *dataBuf);
 		while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
 			;
@@ -149,7 +158,8 @@ void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 	I2C_GenerateSTOP(I2C1, ENABLE);
 }
 
-uint8_t I2CClass::Receive_NoAdd(uint8_t D_Add) {
+uint8_t I2CClass::Receive_NoAdd(uint8_t D_Add)
+{
 	uint8_t data;
 	Receive_NoAdd(D_Add, &data, 1);
 //	//等待总线空闲
@@ -183,7 +193,8 @@ uint8_t I2CClass::Receive_NoAdd(uint8_t D_Add) {
 	return data;
 }
 
-void I2CClass::Receive_NoAdd(uint8_t D_Add, uint8_t *dataBuf, uint8_t size) {
+void I2CClass::Receive_NoAdd(uint8_t D_Add, uint8_t *dataBuf, uint8_t size)
+{
 	//等待总线空闲
 	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
 		;
@@ -200,7 +211,8 @@ void I2CClass::Receive_NoAdd(uint8_t D_Add, uint8_t *dataBuf, uint8_t size) {
 	//打开主动应答
 	I2C_AcknowledgeConfig(I2C1, ENABLE);
 	//循环读取数据
-	while (size) {
+	while (size)
+	{
 		//等待数据到达
 		while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED))
 			;
@@ -215,7 +227,8 @@ void I2CClass::Receive_NoAdd(uint8_t D_Add, uint8_t *dataBuf, uint8_t size) {
 
 			/* Decrement the read bytes counter */
 			size--;
-			if (size == 1) {
+			if (size == 1)
+			{
 				/* Disable Acknowledgement */
 				//				I2C_AcknowledgeConfig(I2C1, DISABLE);
 				I2C1->CR1 &= CR1_ACK_Reset;
@@ -231,7 +244,8 @@ void I2CClass::Receive_NoAdd(uint8_t D_Add, uint8_t *dataBuf, uint8_t size) {
 	I2C1->CR1 |= CR1_ACK_Set;
 }
 
-uint8_t I2CClass::Receive(uint8_t D_Add, uint8_t R_Add) {
+uint8_t I2CClass::Receive(uint8_t D_Add, uint8_t R_Add)
+{
 	uint8_t data;
 	Receive(D_Add, R_Add, &data, 1);
 //	//等待总线空闲
@@ -273,7 +287,8 @@ uint8_t I2CClass::Receive(uint8_t D_Add, uint8_t R_Add) {
 }
 
 void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t* dataBuf,
-		uint8_t size) {
+		uint8_t size)
+{
 	uint8_t limit = 0;
 	//等待总线空闲
 	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
@@ -284,7 +299,8 @@ void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t* dataBuf,
 		;
 	//发送设备地址+写信号
 	I2C_Send7bitAddress(I2C1, D_Add, I2C_Direction_Transmitter);
-	while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
+	while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
+	{
 		limit++;
 		if (limit > 200)
 			return;
@@ -304,7 +320,8 @@ void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t* dataBuf,
 	//打开主动应答
 	I2C_AcknowledgeConfig(I2C1, ENABLE);
 	//循环读取数据
-	while (size) {
+	while (size)
+	{
 		/* Test on EV7 and clear it */
 		while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED))
 			;
@@ -317,14 +334,17 @@ void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t* dataBuf,
 
 			/* Decrement the read bytes counter */
 			size--;
-			if (size == 1) {
+			if (size == 1)
+			{
 				/* Disable Acknowledgement */
 //				I2C_AcknowledgeConfig(I2C1, DISABLE);
 				I2C1->CR1 &= CR1_ACK_Reset;
 				/* Send STOP Condition */
 //				I2C_GenerateSTOP(I2C1, ENABLE);
 				I2C1->CR1 |= CR1_STOP_Set;
-			} else if (size == 2) {
+			}
+			else if (size == 2)
+			{
 				__disable_irq();
 			}
 //			I2C_Event_Flag.Word[0] = I2C1->SR2;

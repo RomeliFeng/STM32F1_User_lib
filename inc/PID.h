@@ -8,29 +8,32 @@
 #ifndef PID_H_
 #define PID_H_
 
-typedef enum {
+typedef enum
+{
 	PIDMode_Diff, PIDMode_Post  //Post Œª÷√–Õ
 } PIDMode;
 
-struct PIDClass {
+struct PIDClass
+{
 public:
-	PIDClass(double p, double i, double d, double set, double *now, double *out,
+	PIDClass(double p, double i, double d, double *set, double *now, double *out,
 			double min, double max, PIDMode mode);
 	void Compute();
-	void Compute(double set);
 	void SetTunings(double p, double i, double d);
 	void SetOutputLimits(double min, double max);
+	void Clear();
+
 private:
 	double Kp;
 	double Ki;
 	double Kd;
 
 	double pError;
-	double pError_Last;
+	double Last;
 	double iTerm;
-	double dError;
+	double DTerm;
 
-	double Set;
+	double *Set;
 	double *Now;
 	double *Out;
 
@@ -38,6 +41,7 @@ private:
 	double OutMax;
 
 	PIDMode Mode;
+
 };
 
 #endif /* PID_H_ */
