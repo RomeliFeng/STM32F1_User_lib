@@ -23,6 +23,8 @@ public:
 	void Send(uint8_t D_Add, uint8_t W_Add, uint8_t *dataBuf, uint8_t size);
 	uint8_t Receive(uint8_t D_Add, uint8_t R_Add);
 	void Receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf, uint8_t size);
+private:
+	void ExitBusy();
 };
 
 extern I2CClass I2C;

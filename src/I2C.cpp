@@ -82,10 +82,15 @@ void I2C_GPIO_Init() {
 
 void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 		uint8_t size) {
+	uint16_t i = 0;
 	while (I2C1_Busy)
 		;
-	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
-		;
+	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY)) {
+		i++;
+		if (i > 30000) {
+			ExitBusy();
+		}
+	}
 	I2C1_Sub_Add_Flag = 1;
 	I2C1_Busy = 1;  //设置I2C忙标识
 	I2C1_Direction = I2C_Direction_Transmitter;
@@ -98,7 +103,10 @@ void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 	for (uint8_t i = 0; i < size; ++i) {
 		I2C1_Tx_Buf[i + 1] = *dataBuf + i;
 	}
+
+	I2C1->CR1 |= CR1_ACK_Set;  //打开自动应答
 	I2C_ITConfig(I2C1, I2C_IT_EVT, ENABLE);
+	I2C_ITConfig(I2C1, I2C_IT_BUF, ENABLE);
 	I2C1->CR1 |= I2C_CR1_START;  //发送开始时序
 }
 
@@ -108,10 +116,15 @@ void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t data) {
 
 void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 		uint8_t size) {
+	uint16_t i = 0;
 	while (I2C1_Busy)
 		;
-	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
-		;
+	while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY)) {
+		i++;
+		if (i > 30000) {
+			ExitBusy();
+		}
+	}
 	I2C1_Sub_Add_Flag = 1;
 	I2C1_Busy = 1;  //设置I2C忙标识
 	I2C1_Direction = I2C_Direction_Receiver;
@@ -127,6 +140,7 @@ void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 
 	I2C1->CR1 |= CR1_ACK_Set;  //打开自动应答
 	I2C_ITConfig(I2C1, I2C_IT_EVT, ENABLE);
+	I2C_ITConfig(I2C1, I2C_IT_BUF, ENABLE);
 	I2C1->CR1 |= I2C_CR1_START;  //发送开始时序
 
 	while (I2C1_Busy)
@@ -139,6 +153,49 @@ uint8_t I2CClass::Receive(uint8_t D_Add, uint8_t R_Add) {
 	while (I2C1_Busy != 0)
 		;
 	return data;
+}
+
+void I2CClass::ExitBusy() {
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+	uint16_t i = 0;
+
+	for (uint8_t j = 0; j < 9; j++) {
+		GPIO_SetBits(GPIOB, GPIO_Pin_6);  //拉高SCL
+		while (i < 80)
+			i++;
+		i = 0;
+		GPIO_ResetBits(GPIOB, GPIO_Pin_6);  //拉低SCL
+		while (i < 80)
+			i++;
+		i = 0;
+	}
+
+	GPIO_SetBits(GPIOB, GPIO_Pin_6);  //拉高SCL
+	while (i < 80)
+		i++;
+	i = 0;
+	//发送一个低电平脉冲
+	GPIO_SetBits(GPIOB, GPIO_Pin_7);  //拉高SDA
+	while (i < 80)
+		i++;
+	i = 0;
+	GPIO_ResetBits(GPIOB, GPIO_Pin_7);  //拉低SDA
+	while (i < 80)
+		i++;
+	i = 0;
+	GPIO_SetBits(GPIOB, GPIO_Pin_7);  //拉高SDA
+	while (i < 80)
+		i++;
+	i = 0;
+
+	I2C1->CR1 |= I2C_CR1_SWRST;  //复位I2C1w
+	I2C1->CR1 &= ~I2C_CR1_SWRST;  //解除复位
+	I2C_GPIO_Init();
 }
 
 extern "C" void I2C1_EV_IRQHandler(void) {
@@ -189,3 +246,4 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 		break;
 	}
 }
+
