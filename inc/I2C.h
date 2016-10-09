@@ -14,19 +14,13 @@
 
 #define SlaveAddress 0x44
 
-#define I2C_Speed 400000
-
 void I2C_GPIO_Init();
 
 class I2CClass {
 public:
-	void Init();
-	void Send_NoAdd(uint8_t D_Add, uint8_t data);
-	void Send_NoAdd(uint8_t D_Add, uint8_t *dataBuf, uint8_t size);
+	void Init(uint32_t Speed);
 	void Send(uint8_t D_Add, uint8_t W_Add, uint8_t data);
 	void Send(uint8_t D_Add, uint8_t W_Add, uint8_t *dataBuf, uint8_t size);
-	uint8_t Receive_NoAdd(uint8_t D_Add);
-	void Receive_NoAdd(uint8_t D_Add, uint8_t *dataBuf, uint8_t size);
 	uint8_t Receive(uint8_t D_Add, uint8_t R_Add);
 	void Receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf, uint8_t size);
 };
