@@ -10,9 +10,9 @@
 
 #include <stm32f10x.h>
 
-#define OC1EN 0
+#define OC1EN 1
 #define OC2EN 1
-#define OC3EN 1
+#define OC3EN 0
 #define OC4EN 0
 
 typedef enum _PWMCh {
