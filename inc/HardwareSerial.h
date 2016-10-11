@@ -15,8 +15,8 @@
 #define USE_DMA
 
 #define USART1_RX_Frame_Size 64
-#define USART1_TX_Buf_Size 64
-#define USART1_RX_Buf_Size 64
+#define USART1_TX_Buf_Size 128
+#define USART1_RX_Buf_Size 128
 
 static char NewLine[] = { '\r', '\n', '\0' };
 
@@ -42,6 +42,7 @@ public:
 	}
 	inline void println(char *data) {
 		print(data);
+		println();
 	}
 	inline void println(long data, uint8_t base = 10) {
 		print(data, base);
@@ -67,7 +68,7 @@ public:
 	double nextFloat();
 	void write(char);
 	uint8_t available();
-	uint8_t checkFrame();
+	bool checkFrame();
 	char peek();
 	char peekNextDigit(bool detectDecimal = false);
 	char read();

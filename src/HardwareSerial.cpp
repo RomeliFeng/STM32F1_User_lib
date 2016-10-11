@@ -288,12 +288,12 @@ uint8_t SerialClass::available() {
 	USART1_RX_Buf_Size - USART1_Read_SP + USART1_RX_SP;
 }
 /*一帧数据检测标志*/
-uint8_t SerialClass::checkFrame() {
+bool SerialClass::checkFrame() {
 	if (USART1_Read_Frame != 0) {
 		USART1_Read_Frame = 0;
-		return 1;
+		return true;
 	} else
-		return 0;
+		return false;
 }
 
 void SerialClass::flush() {

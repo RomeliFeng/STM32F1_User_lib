@@ -48,6 +48,7 @@ void TIM2_GPIO_Config() {
 	//开启GPIOA时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	//配置PA0-PA3；复用推挽输出；最快速度50M；
+	GPIO_InitStructure.GPIO_Pin = 0;
 #if OC1EN
 	GPIO_InitStructure.GPIO_Pin |= GPIO_Pin_0;
 #endif
