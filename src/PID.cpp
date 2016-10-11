@@ -53,6 +53,30 @@ void PIDClass::Compute() {
 			*Out < OutMin ? OutMin : *Out;
 }
 
+void PIDClass::SetTuningP(double p) {
+	if (Postion == PIDPostionPos) {
+		Kp = p;
+	} else {
+		Kp = -p;
+	}
+}
+
+void PIDClass::SetTuningI(double i) {
+	if (Postion == PIDPostionPos) {
+		Ki = i;
+	} else {
+		Ki = -i;
+	}
+}
+
+void PIDClass::SetTuningD(double d) {
+	if (Postion == PIDPostionPos) {
+		Kd = d;
+	} else {
+		Kd = -d;
+	}
+}
+
 void PIDClass::SetTunings(double p, double i, double d) {
 	if (Postion == PIDPostionPos) {
 		Kp = p;

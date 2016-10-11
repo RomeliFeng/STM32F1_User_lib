@@ -21,6 +21,9 @@ public:
 			double *out, double min, double max, PIDPostion postion,
 			PIDMode mode);
 	void Compute();
+	void SetTuningP(double p);
+	void SetTuningI(double i);
+	void SetTuningD(double d);
 	void SetTunings(double p, double i, double d);
 	void SetOutputLimits(double min, double max);
 	void Clear();
