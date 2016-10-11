@@ -194,14 +194,13 @@ inline char SerialClass::peek() {
 char SerialClass::peekNextDigit(bool detectDecimal) {
 	char data = peek();
 	if (data == '-') {
-		USART1_Read_SP++;
+		ReadSPInc();
 		return data;
-	}
-	if (data >= '0' && data <= '9') {	//is digit
-		USART1_Read_SP++;
+	} else if (data >= '0' && data <= '9') {	//is digit
+		ReadSPInc();
 		return data;
 	} else if (data == '.' && detectDecimal) {
-		USART1_Read_SP++;
+		ReadSPInc();
 		return data;
 	} else
 		return -1;
@@ -209,11 +208,7 @@ char SerialClass::peekNextDigit(bool detectDecimal) {
 
 char SerialClass::read() {
 	char data = peek();
-	if (USART1_Read_SP != USART1_RX_SP)				//防止读取越界
-		++USART1_Read_SP;
-	if (USART1_Read_SP == USART1_RX_Buf_Size) {		//指针归零
-		USART1_Read_SP = 0;
-	}
+	ReadSPInc();
 	return data;
 }
 
@@ -225,16 +220,68 @@ void SerialClass::read(char *buf, uint8_t len) {
 
 long SerialClass::nextInt() {
 	long data = 0;
+	bool isNeg = false;
 	char c;
 	while (available() > 0) {
 		c = peekNextDigit();
 		if (c == -1) {
 			break;
+		} else if (c == '-') {
+			if (isNeg) {
+				ReadSPDec();
+				break;
+			}
+
+			else {
+				isNeg = true;
+				continue;
+			}
 		}
 		data = data * 10 + c - '0';
 	}
+	return isNeg ? -data : data;
+}
+
+double SerialClass::nextFloat() {
+	double data = 0.0;
+	double frac = 1.0;
+	bool isNeg = false;
+	bool isFra = false;
+	char c;
+	while (available() > 0) {
+		c = peekNextDigit(true);
+		if (c == -1) {
+			break;
+		} else if (c == '-') {
+			if (isNeg) {
+				ReadSPDec();
+				break;
+			}
+
+			else {
+				isNeg = true;
+				continue;
+			}
+		} else if (c == '.') {
+			if (isFra) {
+				ReadSPDec();
+				break;
+			} else {
+				isFra = true;
+				continue;
+			}
+		}
+		if (isFra) {
+			frac *= 0.1;
+		}
+		data = data * 10 + c - '0';
+
+	}
+	data = isNeg ? -data : data;
+	data = isFra ? data * frac : data;
 	return data;
 }
+
 /*返回未读取字节个数*/
 uint8_t SerialClass::available() {
 	return USART1_RX_SP >= USART1_Read_SP ? USART1_RX_SP - USART1_Read_SP :
@@ -259,7 +306,19 @@ uint8_t SerialClass::getlen(char* data) {
 		len++;
 	return len;
 }
+inline void SerialClass::ReadSPInc() {
+	if (USART1_Read_SP != USART1_RX_SP)				//防止读取越界
+		++USART1_Read_SP;
+	if (USART1_Read_SP == USART1_RX_Buf_Size) {		//指针归零
+		USART1_Read_SP = 0;
+	}
+}
 
+inline void SerialClass::ReadSPDec() {
+	if (USART1_Read_SP == 0) {		//指针归零
+		USART1_Read_SP = USART1_RX_Buf_Size;
+	}
+}
 /*串口缓冲器的中断程序*/
 extern "C" void USART1_IRQHandler(void) {
 	if (USART_GetITStatus(USART1, USART_IT_IDLE) != RESET) {
@@ -322,5 +381,4 @@ extern "C" void DMA1_Channel4_IRQHandler(void) {
 		break;
 	}
 }
-
 #endif

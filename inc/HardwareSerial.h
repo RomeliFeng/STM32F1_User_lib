@@ -64,6 +64,7 @@ public:
 		print(data, getlen(data));
 	}
 	long nextInt();
+	double nextFloat();
 	void write(char);
 	uint8_t available();
 	uint8_t checkFrame();
@@ -75,6 +76,8 @@ public:
 private:
 	void print(char* data, uint8_t len);
 	uint8_t getlen(char* data);
+	void ReadSPInc();
+	void ReadSPDec();
 };
 
 extern SerialClass Serial;
