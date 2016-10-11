@@ -11,10 +11,12 @@
 class Parse {
 public:
 	void byNumber(unsigned long num, unsigned char base, char* str);
-	inline void byNumber(unsigned int num, unsigned char base, char* str) {
+	inline void byNumber(unsigned int num, unsigned char base,
+			char* str) {
 		byNumber((unsigned long) num, base, str);
 	}
-	inline void byNumber(unsigned char num, unsigned char base, char* str) {
+	inline void byNumber(unsigned char num, unsigned char base,
+			char* str) {
 		byNumber((unsigned long) num, base, str);
 	}
 	void byNumber(long num, unsigned char base, char* str);

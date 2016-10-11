@@ -187,8 +187,28 @@ void SerialClass::write(char c) {
 #endif
 }
 
+inline char SerialClass::peek() {
+	return USART1_RX_Buf[USART1_Read_SP];		//取出数据
+}
+
+char SerialClass::peekNextDigit(bool detectDecimal) {
+	char data = peek();
+	if (data == '-') {
+		USART1_Read_SP++;
+		return data;
+	}
+	if (data >= '0' && data <= '9') {	//is digit
+		USART1_Read_SP++;
+		return data;
+	} else if (data == '.' && detectDecimal) {
+		USART1_Read_SP++;
+		return data;
+	} else
+		return -1;
+}
+
 char SerialClass::read() {
-	char data = USART1_RX_Buf[USART1_Read_SP];		//取出数据
+	char data = peek();
 	if (USART1_Read_SP != USART1_RX_SP)				//防止读取越界
 		++USART1_Read_SP;
 	if (USART1_Read_SP == USART1_RX_Buf_Size) {		//指针归零
@@ -201,6 +221,19 @@ void SerialClass::read(char *buf, uint8_t len) {
 	while (len--) {
 		*buf++ = read();
 	}
+}
+
+long SerialClass::nextInt() {
+	long data = 0;
+	char c;
+	while (available() > 0) {
+		c = peekNextDigit();
+		if (c == -1) {
+			break;
+		}
+		data = data * 10 + c - '0';
+	}
+	return data;
 }
 /*返回未读取字节个数*/
 uint8_t SerialClass::available() {
@@ -289,4 +322,5 @@ extern "C" void DMA1_Channel4_IRQHandler(void) {
 		break;
 	}
 }
+
 #endif

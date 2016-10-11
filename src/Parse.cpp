@@ -15,7 +15,6 @@ void Parse::byNumber(unsigned long num, unsigned char base, char* str) {
 	do {
 		char c = num % base;
 		num /= base;
-
 		*--str = c < 10 ? c + '0' : c + 'A' - 10;
 	} while (num);
 }
@@ -30,7 +29,7 @@ void Parse::byNumber(long num, unsigned char base, char* str) {
 
 void Parse::byFloat(double flo, unsigned char ndigit, char* str) {
 	unsigned long int_part;
-	unsigned long rem_part;
+	double rem_part;
 	char tmp[20];
 	// Handle negative flos
 	if (flo < 0.0) {
@@ -48,12 +47,18 @@ void Parse::byFloat(double flo, unsigned char ndigit, char* str) {
 
 	// Extract the integer part of the number and print it
 	int_part = (unsigned long) flo;
-	rem_part = (unsigned long) ((flo - (double) int_part) * pow10(ndigit));
+	rem_part = (flo - (double) int_part);
 	byNumber(int_part, 10, tmp);
 	strcat(str, tmp);
-	strcat(str, ".");
-	byNumber(rem_part, 10, tmp);
-	strcat(str, tmp);
+	if (ndigit > 0)
+		strcat(str, ".");
+	while (ndigit-- > 0) {
+		rem_part *= 10.0;
+		int_part = (int) rem_part;
+		rem_part -= int_part;
+		byNumber(int_part, 10, tmp);
+		strcat(str, tmp);
+	}
 }
 
 unsigned char Parse::getLen(unsigned long num, unsigned char base) {

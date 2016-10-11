@@ -63,9 +63,12 @@ public:
 	void print(char *data) {
 		print(data, getlen(data));
 	}
+	long nextInt();
 	void write(char);
 	uint8_t available();
 	uint8_t checkFrame();
+	char peek();
+	char peekNextDigit(bool detectDecimal = false);
 	char read();
 	void read(char* buf, uint8_t len);
 	void flush();
