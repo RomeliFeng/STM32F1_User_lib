@@ -188,7 +188,10 @@ void SerialClass::write(char c) {
 }
 
 inline char SerialClass::peek() {
-	return USART1_RX_Buf[USART1_Read_SP];		//取出数据
+	if (USART1_Read_SP == USART1_RX_SP)
+		return -1;
+	else
+		return USART1_RX_Buf[USART1_Read_SP];		//取出数据
 }
 
 char SerialClass::peekNextDigit(bool detectDecimal) {
@@ -275,7 +278,6 @@ double SerialClass::nextFloat() {
 			frac *= 0.1;
 		}
 		data = data * 10 + c - '0';
-
 	}
 	data = isNeg ? -data : data;
 	data = isFra ? data * frac : data;

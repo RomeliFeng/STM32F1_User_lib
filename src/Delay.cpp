@@ -7,11 +7,11 @@
 
 #include "Delay.h"
 
-static volatile uint64_t nTime_now = 0;
-uint64_t nTime_last;
+static volatile uint_fast64_t nTime_now = 0;
+uint_fast64_t nTime_last;
 
 void SysTick_Init() {
-	SysTick_Config((SystemCoreClock / 200000) - 5); //Set SysTick timer=us
+	SysTick_Config((SystemCoreClock / 10000) - 5); //Set SysTick timer=us
 	NVIC_SetPriority(SysTick_IRQn, 1);					//Set SysTick interrupt
 //	SysTick->CTRL&=SysTick_CTRL_ENABLE_Msk;			//Disable SysTick
 }
@@ -32,6 +32,6 @@ uint64_t micros() {
 }
 
 extern "C" void SysTick_Handler() {
-	nTime_now += 5;
+	nTime_now += 100;
 }
 
