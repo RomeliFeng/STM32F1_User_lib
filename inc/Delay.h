@@ -10,7 +10,7 @@
 
 #include "stm32f10x.h"
 
-extern void SysTick_Init();
+extern void Delay_Init();
 extern void Delay_us(uint32_t us);
 extern inline void Delay_ms(uint32_t ms)
 {
