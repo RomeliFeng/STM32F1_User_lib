@@ -23,10 +23,4 @@ extern inline void Delay_s(uint32_t s)
 extern uint32_t millis();
 extern uint64_t micros();
 
-class SystickClass
-{
-public:
-	SystickClass();
-};
-
 #endif /* DELAY_H_ */
