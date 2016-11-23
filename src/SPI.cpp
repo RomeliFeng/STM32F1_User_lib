@@ -64,7 +64,7 @@ void SPIClass::Init() {
 
 uint8_t SPIClass::transfer(uint8_t data) {
 	SPI_I2S_SendData(SPI_CH, data);
-	while (SPI_I2S_GetFlagStatus(SPI_CH, SPI_I2S_FLAG_TXE) == RESET)
+	while (SPI_I2S_GetFlagStatus(SPI_CH, SPI_I2S_FLAG_RXNE) == RESET)
 		//等待时钟结束，以便接收数据
 		;
 	return SPI_I2S_ReceiveData(SPI_CH);
