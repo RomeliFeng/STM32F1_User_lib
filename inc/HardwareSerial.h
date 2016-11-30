@@ -15,7 +15,7 @@
 #define USE_DMA
 
 #define USART1_RX_Frame_Size 64
-#define USART1_TX_Buf_Size 128
+#define USART1_TX_Buf_Size 256
 #define USART1_RX_Buf_Size 128
 
 static char NewLine[] = { '\r', '\n', '\0' };
@@ -76,6 +76,7 @@ public:
 	void flush();
 private:
 	void print(char* data, uint8_t len);
+	void DMASend(uint8_t ch);
 	uint8_t getlen(char* data);
 	void ReadSPInc();
 	void ReadSPDec();

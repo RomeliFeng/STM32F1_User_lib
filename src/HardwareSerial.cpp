@@ -11,21 +11,23 @@
 
 SerialClass Serial;
 
-volatile static char USART1_TX_Buf[USART1_TX_Buf_Size];				//发送缓冲器
-volatile static uint8_t USART1_TX_SP = 0;				//发送缓冲器指针
+volatile static uint8_t USART1_TX_Buf[USART1_TX_Buf_Size];				//发送缓冲区
+volatile static uint16_t USART1_TX_SP = 0;				//发送缓冲区指针
 
-volatile static char USART1_RX_Buf[USART1_RX_Buf_Size];				//接收缓存器
-volatile static uint8_t USART1_RX_SP = 0;				//接收缓存器指针
+volatile static uint8_t USART1_RX_Buf[USART1_RX_Buf_Size];				//接收缓存区
+volatile static uint16_t USART1_RX_SP = 0;				//接收缓存区指针
 
-volatile static uint8_t USART1_Read_SP = 0;				//缓存器读取指针
+volatile static uint16_t USART1_Read_SP = 0;				//缓存区读取指针
 volatile static uint8_t USART1_Read_Frame = 0;			//读取帧标准
 
 #ifdef USE_DMA
-volatile static char USART1_TX_Buf2[USART1_TX_Buf_Size];		//备用发送缓冲器
-volatile static uint8_t USART1_TX_SP2 = 0;		//备用发送缓冲器指针
+volatile static uint8_t USART1_TX_Buf2[USART1_TX_Buf_Size];		//备用发送缓冲区
+volatile static uint16_t USART1_TX_SP2 = 0;		//备用发送缓冲区指针
 volatile static uint8_t USART1_TX_BUSY = 0;		//发送DMA器忙标志
 volatile static uint8_t USART1_TX_CH = 1;//发送缓冲期通道		1:USART1_TX_Buf;2:USART1_TX_Buf2
-volatile static char USART1_RX_DMA_Buf[USART1_RX_Frame_Size];		//DMA接收缓存器
+volatile static uint8_t USART1_TX_Buf_BUSY = 0;	//发送缓冲区1中标志
+volatile static uint8_t USART1_TX_Buf2_BUSY = 0;	//发送缓冲区2中标志
+volatile static uint8_t USART1_RX_DMA_Buf[USART1_RX_Frame_Size];	//DMA接收缓存区
 #endif
 
 void SerialClass::begin(uint32_t BaudRate) {
@@ -148,13 +150,50 @@ void SerialClass::print(char *data, uint8_t len) {
 	if (USART1_TX_BUSY) {				//判断DMA是否在使用中
 		switch (USART1_TX_CH) {			//判断正在使用的缓冲区
 		case 1:
+			SWCH_1: USART1_TX_Buf2_BUSY = 1;	//防止发送混乱
 			while (len--) {
 				USART1_TX_Buf2[USART1_TX_SP2++] = *data++;	//缓冲区1正在发送中，填充缓冲区2
+				if (USART1_TX_SP2 == USART1_TX_Buf_Size) {
+					//缓冲区已满
+					USART1_TX_Buf2_BUSY = 0;
+					if (!USART1_TX_BUSY) {	//判断DMA是否空闲
+						DMASend(2);	//发送缓冲区2的内容
+					} else {
+						//等待缓冲区1发送完成
+						while (USART1_TX_CH != 2)
+							;
+					}
+					goto SWCH_2;
+					//继续填充缓冲区1
+				}
+			}
+			USART1_TX_Buf2_BUSY = 0;
+			if (!USART1_TX_BUSY) {	//判断DMA是否空闲
+				DMASend(2);	//发送缓冲区2的内容
 			}
 			break;
 		case 2:
+			SWCH_2: USART1_TX_Buf_BUSY = 1;	//防止发送混乱
 			while (len--) {
-				USART1_TX_Buf[USART1_TX_SP++] = *data++;	//缓冲区2正在发送中，填充缓冲区1
+				USART1_TX_Buf[USART1_TX_SP++] = *data++;
+				//缓冲区2正在发送中，填充缓冲区1
+				if (USART1_TX_SP == USART1_TX_Buf_Size) {
+					//缓冲区已满
+					USART1_TX_Buf_BUSY = 0;
+					if (!USART1_TX_BUSY) {	//判断DMA是否空闲
+						DMASend(1);	//发送缓冲区2的内容
+					} else {
+						//等待缓冲区1发送完成
+						while (USART1_TX_CH != 1)
+							;
+					}
+					goto SWCH_1;
+					//继续填充缓冲区2
+				}
+			}
+			USART1_TX_Buf_BUSY = 0;
+			if (!USART1_TX_BUSY) {	//判断DMA是否空闲
+				DMASend(1);	//发送缓冲区2的内容
 			}
 			break;
 		default:
@@ -164,17 +203,37 @@ void SerialClass::print(char *data, uint8_t len) {
 		while (len--) {
 			USART1_TX_Buf[USART1_TX_SP++] = *data++;
 		}
-		USART1_TX_CH = 1;
-		USART1_TX_BUSY = 1;
-		DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf;		//更改DMA外设地址
-		DMA1_Channel4->CNDTR = USART1_TX_SP;				//传入发送字节个数
-		DMA_Cmd(DMA1_Channel4, ENABLE);
+		DMASend(1);
 	}
 #else
 	while (*data != '\0') {
 		write(*data++);
 	}
 #endif
+}
+
+void SerialClass::DMASend(uint8_t ch) {
+	volatile uint8_t *TX_Buf_Add;
+	uint16_t TX_Len;
+	switch (ch) {
+	case 1:
+		TX_Buf_Add = USART1_TX_Buf;
+		TX_Len = USART1_TX_SP;
+		break;
+	case 2:
+		TX_Buf_Add = USART1_TX_Buf2;
+		TX_Len = USART1_TX_SP2;
+		break;
+	default:
+		TX_Buf_Add = USART1_TX_Buf;
+		TX_Len = USART1_TX_SP;
+		break;
+	}
+	USART1_TX_CH = 1;
+	USART1_TX_BUSY = 1;
+	DMA1_Channel4->CMAR = (uint32_t) TX_Buf_Add;		//更改DMA外设地址
+	DMA1_Channel4->CNDTR = TX_Len;				//传入发送字节个数
+	DMA_Cmd(DMA1_Channel4, ENABLE);
 }
 
 void SerialClass::write(char c) {
@@ -318,20 +377,22 @@ inline void SerialClass::ReadSPInc() {
 
 inline void SerialClass::ReadSPDec() {
 	if (USART1_Read_SP == 0) {		//指针归零
-		USART1_Read_SP = USART1_RX_Buf_Size;
+		USART1_Read_SP = USART1_RX_Buf_Size - 1;
+	} else {
+		--USART1_Read_SP;
 	}
 }
-/*串口缓冲器的中断程序*/
+/*串口缓冲区的中断程序*/
 extern "C" void USART1_IRQHandler(void) {
 	if (USART_GetITStatus(USART1, USART_IT_IDLE) != RESET) {
 		USART1_Read_Frame = 1;
 		USART_ReceiveData(USART1);
 #ifdef USE_DMA
-		DMA_Cmd(DMA1_Channel5, DISABLE);			//接收到1帧数据，从DMA保存到缓冲区
+		//DMA_Cmd(DMA1_Channel5, DISABLE);			//接收到1帧数据，从DMA保存到缓冲区
 		USART_ReceiveData(USART1);
-		uint8_t len = USART1_RX_Frame_Size - DMA1_Channel5->CNDTR;
+		uint16_t len = USART1_RX_Frame_Size - DMA1_Channel5->CNDTR;
 		DMA1_Channel5->CNDTR = USART1_RX_Frame_Size;
-		for (uint8_t i = 0; i < len; ++i) {
+		for (uint16_t i = 0; i < len; ++i) {
 			USART1_RX_Buf[USART1_RX_SP++] = USART1_RX_DMA_Buf[i];
 			if (USART1_RX_SP == USART1_RX_Buf_Size) {
 				USART1_RX_SP = 0;
@@ -352,35 +413,35 @@ extern "C" void USART1_IRQHandler(void) {
 		USART_ReceiveData(USART1);
 }
 
-#ifdef USE_DMA
 extern "C" void DMA1_Channel4_IRQHandler(void) {
-	DMA_ClearFlag(DMA1_FLAG_TC4);
+#ifdef USE_DMA
 	DMA_Cmd(DMA1_Channel4, DISABLE);
-	switch (USART1_TX_CH) {
+	DMA_ClearFlag(DMA1_FLAG_TC4);
+	switch (USART1_TX_CH) {			//查询当前使用的缓冲区
 	case 1:
-		USART1_TX_SP = 0;
-		if (USART1_TX_SP2 != 0) {
-			USART1_TX_CH = 2;
+		USART1_TX_SP = 0;	//缓冲区1发送已完成，清空指针
+		if (USART1_TX_SP2 != 0 && USART1_TX_Buf2_BUSY == 0) {//如果缓冲区2中有未发送的数据 并且缓冲区未在填充中
+			USART1_TX_CH = 2;		//切换当前发送缓冲区选择
 			DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf2;
 			DMA1_Channel4->CNDTR = USART1_TX_SP2;
 			DMA_Cmd(DMA1_Channel4, ENABLE);
 		} else {
-			USART1_TX_BUSY = 0;
+			USART1_TX_BUSY = 0;	//所有数据发送完毕，关闭忙标志
 		}
 		break;
 	case 2:
-		USART1_TX_SP2 = 0;
-		if (USART1_TX_SP != 0) {
-			USART1_TX_CH = 1;
+		USART1_TX_SP2 = 0;	//缓冲区2发送已完成，清空指针
+		if (USART1_TX_SP != 0 && USART1_TX_Buf2_BUSY == 0) {//如果缓冲区1中有未发送的数据 并且缓冲区未在填充中
+			USART1_TX_CH = 1;	//切换当前发送缓冲区选择
 			DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf;
 			DMA1_Channel4->CNDTR = USART1_TX_SP;
 			DMA_Cmd(DMA1_Channel4, ENABLE);
 		} else {
-			USART1_TX_BUSY = 0;
+			USART1_TX_BUSY = 0; //所有数据发送完毕，关闭忙标志
 		}
 		break;
 	default:
 		break;
 	}
-}
 #endif
+}
