@@ -5,16 +5,13 @@
  *      Author: Romeli
  */
 #include "PWM.h"
-#include "diag/Trace.h"
-#include "Delay.h"
-#include "HardwareSerial.h"
 
 PWMClass PWM;
 
 void PWMClass::Init(uint16_t Period = 4095, uint16_t Duty = 0) {
-	TIM2_GPIO_Config();
-	TIM2_NVIC_Config();
-	TIM2_Mode_Config(Period, Duty);
+	U_TIM2_GPIO_Config();
+	U_TIM2_NVIC_Config();
+	U_TIM2_Mode_Config(Period, Duty);
 }
 
 void PWMClass::SetDuty(uint16_t Duty) {
@@ -84,33 +81,36 @@ void PWMClass::SetClockDiv(PWMClockDiv div) {
 	TIM_SetClockDivision(TIM2, div);
 }
 
-void TIM2_GPIO_Config() {
+void U_TIM2_GPIO_Config() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	//开启TIM2时钟
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+
+#if (OC1_MODE_PWM1 | OC2_MODE_PWM1 | OC3_MODE_PWM1 | OC4_MODE_PWM1)
 	//开启GPIOA时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	//配置PA0-PA3；复用推挽输出；最快速度50M；
 	GPIO_InitStructure.GPIO_Pin = 0;
-#ifdef OC1_EN
+#ifdef OC1_MODE_PWM1
 	GPIO_InitStructure.GPIO_Pin |= GPIO_Pin_0;
 #endif
-#ifdef OC2_EN
+#ifdef OC2_MODE_PWM1
 	GPIO_InitStructure.GPIO_Pin |= GPIO_Pin_1;
 #endif
-#ifdef OC3_EN
+#ifdef OC3_MODE_PWM1
 	GPIO_InitStructure.GPIO_Pin |= GPIO_Pin_2;
 #endif
-#ifdef OC4_EN
+#ifdef OC4_MODE_PWM1
 	GPIO_InitStructure.GPIO_Pin |= GPIO_Pin_3;
 #endif
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+#endif
 }
 
-void TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
+void U_TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	//初始化TIM
@@ -133,49 +133,69 @@ void TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
 	//设置PWM初始为高电平，跳变后为低电平
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	//默认占空比一致故不进行占空比修改
+
 	//使能通道1
 #ifdef OC1_EN
+#if OC1_MODE_PWM1
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+#elif OC1_MODE_TIMING
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Timing;
+#endif
 	TIM_OC1Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
-#ifdef IT_CC1_EN
-	TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
-#endif
 #endif
 	//使能通道2
 #ifdef OC2_EN
+#if OC2_MODE_PWM1
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+#elif OC2_MODE_TIMING
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Timing;
+#endif
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OC2Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC2PreloadConfig(TIM2, TIM_OCPreload_Enable);
-#ifdef IT_CC2_EN
-	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
-#endif
 #endif
 	//使能通道3
 #ifdef OC3_EN
+#if OC3_MODE_PWM1
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+#elif OC3_MODE_TIMING
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Timing;
+#endif
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OC3Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC3PreloadConfig(TIM2, TIM_OCPreload_Enable);
-#ifdef IT_CC3_EN
-	TIM_ITConfig(TIM2, TIM_IT_CC3, ENABLE);
-#endif
 #endif
 	//使能通道4
 #ifdef OC4_EN
+#if OC4_MODE_PWM1
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+#elif OC4_MODE_TIMING
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Timing;
+#endif
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OC4Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC4PreloadConfig(TIM2, TIM_OCPreload_Enable);
+#endif
+
+#ifdef IT_CC1_EN
+	TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
+#endif
+#ifdef IT_CC2_EN
+	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
+#endif
+#ifdef IT_CC3_EN
+	TIM_ITConfig(TIM2, TIM_IT_CC3, ENABLE);
+#endif
 #ifdef IT_CC4_EN
 	TIM_ITConfig(TIM2, TIM_IT_CC4, ENABLE);
 #endif
-#endif
-
 #ifdef IT_UPDATE_EN
 	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
 #endif
+
 	//使能TIM2重载寄存器
 	TIM_ARRPreloadConfig(TIM2, ENABLE);
-
 	//使能定时器2
 	TIM_Cmd(TIM2, ENABLE);
 }
@@ -184,7 +204,7 @@ void PWMClass::SetPrescaler(uint16_t pre) {
 	TIM_PrescalerConfig(TIM2, pre, TIM_PSCReloadMode_Update);
 }
 
-void TIM2_NVIC_Config() {
+void U_TIM2_NVIC_Config() {
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_1);
@@ -198,14 +218,40 @@ void TIM2_NVIC_Config() {
 }
 
 extern "C" void TIM2_IRQHandler(void) {
-	static uint64_t t = 0;
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
-		t = micros();
+		U_TIM2_UPADATE_ISR();
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 	}
+	if (TIM_GetITStatus(TIM2, TIM_IT_CC1) != RESET) {
+		U_TIM2_CC1_ISR();
+		TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
+	}
+	if (TIM_GetITStatus(TIM2, TIM_IT_CC2) != RESET) {
+		U_TIM2_CC2_ISR();
+		TIM_ClearITPendingBit(TIM2, TIM_IT_CC2);
+	}
 	if (TIM_GetITStatus(TIM2, TIM_IT_CC3) != RESET) {
-		Serial.println((long) (micros() - t));
-
+		U_TIM2_CC3_ISR();
 		TIM_ClearITPendingBit(TIM2, TIM_IT_CC3);
 	}
+	if (TIM_GetITStatus(TIM2, TIM_IT_CC4) != RESET) {
+		U_TIM2_CC4_ISR();
+		TIM_ClearITPendingBit(TIM2, TIM_IT_CC4);
+	}
+}
+//Default tim_it_cc handler
+void __attribute__((weak)) U_TIM2_CC1_ISR() {
+	return;
+}
+void __attribute__((weak)) U_TIM2_CC2_ISR() {
+	return;
+}
+void __attribute__((weak)) U_TIM2_CC3_ISR() {
+	return;
+}
+void __attribute__((weak)) U_TIM2_CC4_ISR() {
+	return;
+}
+void __attribute__((weak)) U_TIM2_UPADATE_ISR() {
+	return;
 }
