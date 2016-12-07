@@ -15,7 +15,7 @@
 #define USE_DMA
 
 #define USART1_RX_Frame_Size 64
-#define USART1_TX_Buf_Size 256
+#define USART1_TX_Buf_Size 1024
 #define USART1_RX_Buf_Size 128
 
 static char NewLine[] = { '\r', '\n', '\0' };
