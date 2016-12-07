@@ -1,10 +1,10 @@
 /*
- * HardwareSerial.cpp
+ * U_USART1.cpp
  *
  *  Created on: 2016Äê1ÔÂ18ÈÕ
  *      Author: Romeli
  */
-#include "HardwareSerial.h"
+#include "U_USART1.h"
 
 #include <stdlib.h>
 #include <stdio.h>

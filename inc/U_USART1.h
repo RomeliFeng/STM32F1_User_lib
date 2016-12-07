@@ -1,13 +1,13 @@
 /*
- * HardwareSerial.h
+ * U_USART1.h
  *
  *  Created on: 2016Äê1ÔÂ18ÈÕ
  *      Author: Romeli
  *      Version: V1.0
  */
 
-#ifndef HARDWARESERIAL_H_
-#define HARDWARESERIAL_H_
+#ifndef U_USART1_H_
+#define U_USART1_H_
 
 #include "stm32f10x.h"
 #include "Parse.h"
@@ -83,4 +83,4 @@ private:
 };
 
 extern SerialClass Serial;
-#endif /* HARDWARESERIAL_H_ */
+#endif /* U_USART1_H_ */
