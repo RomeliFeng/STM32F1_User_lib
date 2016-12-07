@@ -1,5 +1,5 @@
 /*
- * I2C.h
+ * U_I2C1.h
  *
  *  Created on: 2016Äê2ÔÂ7ÈÕ
  *      Author: Romeli
@@ -7,8 +7,8 @@
  *          		|  PB7-I2C1_SDA   |
  */
 
-#ifndef I2C_H_
-#define I2C_H_
+#ifndef U_I2C1_H_
+#define U_I2C1_H_
 
 #include "stm32f10x.h"
 
@@ -28,4 +28,4 @@ private:
 };
 
 extern I2CClass I2C;
-#endif /* I2C_H_ */
+#endif /* U_I2C1_H_ */

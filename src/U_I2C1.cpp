@@ -1,10 +1,10 @@
 /*
- * I2C.cpp
+ * U_I2C1.cpp
  *
  *  Created on: 2016年2月7日
  *      Author: Romeli
  */
-#include "I2C.h"
+#include "U_I2C1.h"
 
 /* I2C START mask */
 #define CR1_START_Set           ((uint16_t)0x0100)
@@ -48,21 +48,26 @@ void I2CClass::Init(uint32_t Speed) {
 	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
 	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
 	I2C_InitStructure.I2C_ClockSpeed = Speed;
-	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
+	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_16_9;
 	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
 	I2C_InitStructure.I2C_OwnAddress1 = SlaveAddress;
 
 	I2C_Init(I2C1, &I2C_InitStructure);
 
-	I2C_ITConfig(I2C1, I2C_IT_EVT, ENABLE);
-	I2C_ITConfig(I2C1, I2C_IT_BUF, ENABLE);
-//	I2C_ITConfig(I2C1, I2C_IT_ERR, ENABLE);
-	//	I2C_Cmd(I2C1, ENABLE);
+	I2C_Cmd(I2C1, ENABLE);
+
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_1);
 
 	NVIC_InitTypeStructure.NVIC_IRQChannel = I2C1_EV_IRQn;
 	NVIC_InitTypeStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_InitTypeStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitTypeStructure.NVIC_IRQChannelSubPriority = 0;
+
+	NVIC_Init(&NVIC_InitTypeStructure);
+
+	NVIC_InitTypeStructure.NVIC_IRQChannel = I2C1_ER_IRQn;
+	NVIC_InitTypeStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitTypeStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitTypeStructure.NVIC_IRQChannelSubPriority = 0;
 
 	NVIC_Init(&NVIC_InitTypeStructure);
@@ -105,8 +110,7 @@ void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 	}
 
 	I2C1->CR1 |= CR1_ACK_Set;  //打开自动应答
-	I2C_ITConfig(I2C1, I2C_IT_EVT, ENABLE);
-	I2C_ITConfig(I2C1, I2C_IT_BUF, ENABLE);
+	I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, ENABLE);
 	I2C1->CR1 |= I2C_CR1_START;  //发送开始时序
 }
 
@@ -139,8 +143,7 @@ void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 	I2C1_Rx_Buf = dataBuf;
 
 	I2C1->CR1 |= CR1_ACK_Set;  //打开自动应答
-	I2C_ITConfig(I2C1, I2C_IT_EVT, ENABLE);
-	I2C_ITConfig(I2C1, I2C_IT_BUF, ENABLE);
+	I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, ENABLE);
 	I2C1->CR1 |= I2C_CR1_START;  //发送开始时序
 
 	while (I2C1_Busy)
@@ -210,7 +213,7 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 			I2C_Send7bitAddress(I2C1, I2C1_Device_Add, I2C1_Direction);
 		break;
 	case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED:
-		I2C_SendData(I2C1, I2C1_Tx_Buf[I2C1_Tx_Index++]);
+		I2C1->DR = I2C1_Tx_Buf[I2C1_Tx_Index++];
 		break;
 	case I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED:
 		if (I2C1_Rx_Size == 1) {
@@ -218,14 +221,25 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 			I2C1->CR1 |= CR1_STOP_Set;		//发送结束时序
 		}
 		break;
+	case I2C_EVENT_MASTER_BYTE_TRANSMITTING:
+		if (I2C1_Direction == I2C_Direction_Transmitter) {
+			if (I2C1_Tx_Index < I2C1_Tx_Size)
+				I2C1->DR = I2C1_Tx_Buf[I2C1_Tx_Index++];
+			else {
+				I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, DISABLE);
+				I2C1->CR1 |= CR1_STOP_Set;		//发送结束时序
+				I2C1_Busy = 0;
+			}
+		}
+		break;
 	case I2C_EVENT_MASTER_BYTE_TRANSMITTED:
 		if (I2C1_Direction == I2C_Direction_Receiver) {
 			I2C1->CR1 |= I2C_CR1_START;		//发送开始时序
 		} else {
 			if (I2C1_Tx_Index < I2C1_Tx_Size)
-				I2C_SendData(I2C1, I2C1_Tx_Buf[I2C1_Tx_Index++]);
+				I2C1->DR = I2C1_Tx_Buf[I2C1_Tx_Index++];
 			else {
-				I2C_ITConfig(I2C1, I2C_IT_EVT, DISABLE);
+				I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, DISABLE);
 				I2C1->CR1 |= CR1_STOP_Set;		//发送结束时序
 				I2C1_Busy = 0;
 			}
@@ -238,7 +252,7 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 			I2C1->CR1 |= CR1_STOP_Set;		//发送结束时序
 		}
 		if (I2C1_Rx_Index == I2C1_Rx_Size) {
-			I2C_ITConfig(I2C1, I2C_IT_EVT, DISABLE);
+			I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, DISABLE);
 			I2C1_Busy = 0;
 		}
 		break;
@@ -246,4 +260,29 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 		break;
 	}
 }
+extern "C" void I2C1_ER_IRQHandler(void) {
+	if (I2C1->SR1 & 1 << 10) //应答失败
+			{
+		I2C1->SR1 &= ~(1 << 10); //清除中断
+	}
 
+	if (I2C1->SR1 & 1 << 14) //超时
+			{
+		I2C1->SR1 &= ~(1 << 14); //清除中断
+	}
+
+	if (I2C1->SR1 & 1 << 11) //过载/欠载
+			{
+		I2C1->SR1 &= ~(1 << 11); //清除中断
+	}
+
+	if (I2C1->SR1 & 1 << 9) //仲裁丢失
+			{
+		I2C1->SR1 &= ~(1 << 9); //清除中断
+	}
+
+	if (I2C1->SR1 & 1 << 8) //总线出错
+			{
+		I2C1->SR1 &= ~(1 << 8); //清除中断
+	}
+}
