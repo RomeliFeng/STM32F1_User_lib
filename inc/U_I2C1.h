@@ -19,10 +19,13 @@ void I2C_GPIO_Init();
 class I2CClass {
 public:
 	void Init(uint32_t Speed);
-	void Send(uint8_t D_Add, uint8_t W_Add, uint8_t data);
-	void Send(uint8_t D_Add, uint8_t W_Add, uint8_t *dataBuf, uint8_t size);
-	uint8_t Receive(uint8_t D_Add, uint8_t R_Add);
-	void Receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf, uint8_t size);
+	void SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t data);
+	void SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t *dataBuf,
+			uint8_t size);
+
+	uint8_t ReceiveSync(uint8_t D_Add, uint8_t R_Add);
+	void ReceiveSync(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
+			uint8_t size);
 private:
 	void ExitBusy();
 };

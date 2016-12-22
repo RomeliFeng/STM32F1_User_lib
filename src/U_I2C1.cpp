@@ -16,14 +16,9 @@
 #define CR1_ACK_Set             ((uint16_t)0x0400)
 #define CR1_ACK_Reset           ((uint16_t)0xFBFF)
 
-#define I2C1_TX_Buf_Size 16
+#define I2C1_TX_Buf_Size 64
 
 I2CClass I2C;
-
-union _I2C_Event_Flag {
-	uint32_t All;
-	uint16_t Word[2];
-} I2C_Event_Flag;
 
 volatile static uint8_t I2C1_Busy = 0;
 volatile static uint8_t I2C1_Direction;
@@ -53,6 +48,8 @@ void I2CClass::Init(uint32_t Speed) {
 	I2C_InitStructure.I2C_OwnAddress1 = SlaveAddress;
 
 	I2C_Init(I2C1, &I2C_InitStructure);
+
+	I2C_ITConfig(I2C1, I2C_IT_ERR, ENABLE);
 
 	I2C_Cmd(I2C1, ENABLE);
 
@@ -85,7 +82,7 @@ void I2C_GPIO_Init() {
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
 
-void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
+void I2CClass::SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 		uint8_t size) {
 	uint16_t i = 0;
 	while (I2C1_Busy)
@@ -106,7 +103,7 @@ void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 	I2C1_Tx_Buf[0] = W_Add;
 
 	for (uint8_t i = 0; i < size; ++i) {
-		I2C1_Tx_Buf[i + 1] = *dataBuf + i;
+		I2C1_Tx_Buf[i + 1] = *(dataBuf + i);
 	}
 
 	I2C1->CR1 |= CR1_ACK_Set;  //打开自动应答
@@ -114,11 +111,11 @@ void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 	I2C1->CR1 |= I2C_CR1_START;  //发送开始时序
 }
 
-void I2CClass::Send(uint8_t D_Add, uint8_t W_Add, uint8_t data) {
-	Send(D_Add, W_Add, &data, 1);
+void I2CClass::SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t data) {
+	SendAsync(D_Add, W_Add, &data, 1);
 }
 
-void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
+void I2CClass::ReceiveSync(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 		uint8_t size) {
 	uint16_t i = 0;
 	while (I2C1_Busy)
@@ -150,9 +147,9 @@ void I2CClass::Receive(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 		;
 }
 
-uint8_t I2CClass::Receive(uint8_t D_Add, uint8_t R_Add) {
+uint8_t I2CClass::ReceiveSync(uint8_t D_Add, uint8_t R_Add) {
 	uint8_t data;
-	Receive(D_Add, R_Add, &data, 1);
+	ReceiveSync(D_Add, R_Add, &data, 1);
 	while (I2C1_Busy != 0)
 		;
 	return data;
@@ -212,27 +209,23 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 		else
 			I2C_Send7bitAddress(I2C1, I2C1_Device_Add, I2C1_Direction);
 		break;
-	case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED:
+	case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED://写模式选中
 		I2C1->DR = I2C1_Tx_Buf[I2C1_Tx_Index++];
 		break;
-	case I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED:
+	case I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED://读模式选中
 		if (I2C1_Rx_Size == 1) {
 			I2C1->CR1 &= CR1_ACK_Reset;		//关闭自动应答
 			I2C1->CR1 |= CR1_STOP_Set;		//发送结束时序
 		}
 		break;
-	case I2C_EVENT_MASTER_BYTE_TRANSMITTING:
+	case I2C_EVENT_MASTER_BYTE_TRANSMITTING://TXE标志
 		if (I2C1_Direction == I2C_Direction_Transmitter) {
-			if (I2C1_Tx_Index < I2C1_Tx_Size)
+			if (I2C1_Tx_Index < I2C1_Tx_Size) {
 				I2C1->DR = I2C1_Tx_Buf[I2C1_Tx_Index++];
-			else {
-				I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, DISABLE);
-				I2C1->CR1 |= CR1_STOP_Set;		//发送结束时序
-				I2C1_Busy = 0;
 			}
 		}
 		break;
-	case I2C_EVENT_MASTER_BYTE_TRANSMITTED:
+	case I2C_EVENT_MASTER_BYTE_TRANSMITTED://TXE&BTF标志
 		if (I2C1_Direction == I2C_Direction_Receiver) {
 			I2C1->CR1 |= I2C_CR1_START;		//发送开始时序
 		} else {
@@ -245,7 +238,7 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 			}
 		}
 		break;
-	case I2C_EVENT_MASTER_BYTE_RECEIVED:
+	case I2C_EVENT_MASTER_BYTE_RECEIVED://RXE标志
 		I2C1_Rx_Buf[I2C1_Rx_Index++] = I2C1->DR;		//读取数据
 		if (I2C1_Rx_Index == I2C1_Rx_Size - 1) {
 			I2C1->CR1 &= CR1_ACK_Reset;		//关闭自动应答
@@ -261,28 +254,22 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 	}
 }
 extern "C" void I2C1_ER_IRQHandler(void) {
-	if (I2C1->SR1 & 1 << 10) //应答失败
-			{
+	if (I2C1->SR1 & 1 << 10) {		//应答失败
 		I2C1->SR1 &= ~(1 << 10); //清除中断
 	}
-
-	if (I2C1->SR1 & 1 << 14) //超时
-			{
+	if (I2C1->SR1 & 1 << 14) { //超时
 		I2C1->SR1 &= ~(1 << 14); //清除中断
 	}
-
-	if (I2C1->SR1 & 1 << 11) //过载/欠载
-			{
+	if (I2C1->SR1 & 1 << 11) { //过载/欠载
 		I2C1->SR1 &= ~(1 << 11); //清除中断
 	}
-
-	if (I2C1->SR1 & 1 << 9) //仲裁丢失
-			{
+	if (I2C1->SR1 & 1 << 9) { //仲裁丢失
 		I2C1->SR1 &= ~(1 << 9); //清除中断
 	}
-
-	if (I2C1->SR1 & 1 << 8) //总线出错
-			{
+	if (I2C1->SR1 & 1 << 8) { //总线出错
 		I2C1->SR1 &= ~(1 << 8); //清除中断
 	}
+	I2C1->CR1 &= CR1_ACK_Reset;		//关闭自动应答
+	I2C1->CR1 |= CR1_STOP_Set;		//发送结束时序
+	I2C1_Busy = 0;
 }
