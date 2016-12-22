@@ -64,6 +64,7 @@ public:
 	void print(char *data) {
 		print(data, getlen(data));
 	}
+	void print(char* data, uint8_t len);
 	long nextInt();
 	double nextFloat();
 	void write(char);
@@ -75,7 +76,6 @@ public:
 	void read(char* buf, uint8_t len);
 	void flush();
 private:
-	void print(char* data, uint8_t len);
 	void DMASend(uint8_t ch);
 	uint8_t getlen(char* data);
 	void ReadSPInc();
