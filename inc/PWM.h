@@ -10,7 +10,7 @@
 
 #include <stm32f10x.h>
 
-//#define OC1_EN
+#define OC1_EN
 #ifdef OC1_EN
 //OC模式定义
 #define OC1_MODE_PWM1 1
@@ -25,10 +25,10 @@
 #define OC2_MODE_PWM1 1
 //#define OC2_MODE_TIMING 1
 //CC比较中断
-#define IT_CC2_EN
+//#define IT_CC2_EN
 #endif
 
-#define OC3_EN
+//#define OC3_EN
 #ifdef OC3_EN
 //OC模式定义
 #define OC3_MODE_PWM1 1
@@ -37,7 +37,7 @@
 //#define IT_CC3_EN
 #endif
 
-#define OC4_EN
+//#define OC4_EN
 #ifdef OC4_EN
 //OC模式定义
 #define OC4_MODE_PWM1 1

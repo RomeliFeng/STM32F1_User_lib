@@ -229,7 +229,7 @@ void SerialClass::DMASend(uint8_t ch) {
 		TX_Len = USART1_TX_SP;
 		break;
 	}
-	USART1_TX_CH = 1;
+	USART1_TX_CH = ch;
 	USART1_TX_BUSY = 1;
 	DMA1_Channel4->CMAR = (uint32_t) TX_Buf_Add;		//更改DMA外设地址
 	DMA1_Channel4->CNDTR = TX_Len;				//传入发送字节个数
@@ -246,7 +246,7 @@ void SerialClass::write(char c) {
 #endif
 }
 
-inline char SerialClass::peek() {
+char SerialClass::peek() {
 	if (USART1_Read_SP == USART1_RX_SP)
 		return -1;
 	else
@@ -388,10 +388,11 @@ extern "C" void USART1_IRQHandler(void) {
 		USART1_Read_Frame = 1;
 		USART_ReceiveData(USART1);
 #ifdef USE_DMA
-		//DMA_Cmd(DMA1_Channel5, DISABLE);			//接收到1帧数据，从DMA保存到缓冲区
-		USART_ReceiveData(USART1);
+		DMA_Cmd(DMA1_Channel5, DISABLE);			//接收到1帧数据，从DMA保存到缓冲区
 		uint16_t len = USART1_RX_Frame_Size - DMA1_Channel5->CNDTR;
-		DMA1_Channel5->CNDTR = USART1_RX_Frame_Size;
+		DMA_ClearFlag(
+		DMA1_FLAG_GL5 | DMA1_FLAG_TC5 | DMA1_FLAG_TE5 | DMA1_FLAG_HT5);
+		DMA1_Channel5->CNDTR = USART1_RX_Frame_Size;//此寄存器 只能在Channel disable状态下修改
 		for (uint16_t i = 0; i < len; ++i) {
 			USART1_RX_Buf[USART1_RX_SP++] = USART1_RX_DMA_Buf[i];
 			if (USART1_RX_SP == USART1_RX_Buf_Size) {
