@@ -25,40 +25,40 @@ public:
 	void begin(uint32_t);
 
 	void print(long data, uint8_t base = 10);
-	inline void print(char data, uint8_t base = 10) {
+	void print(char data, uint8_t base = 10) {
 		print((long) data, base);
 	}
-	inline void print(int data, uint8_t base = 10) {
+	void print(int data, uint8_t base = 10) {
 		print((long) data, base);
 	}
 
 	void print(double data, uint8_t ndigit = 2);
-	inline void print(float data, uint8_t ndigit = 2) {
+	void print(float data, uint8_t ndigit = 2) {
 		print((double) data, ndigit);
 	}
 
-	inline void println() {
+	void println() {
 		print(NewLine, 2);
 	}
-	inline void println(char *data) {
+	void println(char *data) {
 		print(data);
 		println();
 	}
-	inline void println(long data, uint8_t base = 10) {
+	void println(long data, uint8_t base = 10) {
 		print(data, base);
 		println();
 	}
-	inline void println(char data, uint8_t base = 10) {
+	void println(char data, uint8_t base = 10) {
 		println((long) data, base);
 	}
-	inline void println(int data, uint8_t base = 10) {
+	void println(int data, uint8_t base = 10) {
 		println((long) data, base);
 	}
-	inline void println(double data, uint8_t ndigit = 2) {
+	void println(double data, uint8_t ndigit = 2) {
 		print(data, ndigit);
 		println();
 	}
-	inline void println(float data, uint8_t ndigit = 2) {
+	void println(float data, uint8_t ndigit = 2) {
 		print((double) data, ndigit);
 	}
 	void print(char *data) {
