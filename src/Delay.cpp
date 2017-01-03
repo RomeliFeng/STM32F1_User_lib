@@ -18,7 +18,7 @@ void Delay_Init(uint16_t DelayResolution_us) {
 //	SysTick->CTRL&=SysTick_CTRL_ENABLE_Msk;			//Disable SysTick
 }
 
-void Delay_us(uint32_t us) {
+void Delay_us(uint64_t us) {
 //	SysTick->CTRL|=SysTick_CTRL_ENABLE_Msk;			//Ensable SysTick
 	nTime_last = nTime_now;							//Record time_now
 	while ((nTime_now - nTime_last) < us)
