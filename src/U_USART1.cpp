@@ -11,6 +11,8 @@
 
 SerialClass Serial;
 
+extern void Serial_Event();
+
 volatile static uint8_t USART1_TX_Buf[USART1_TX_Buf_Size];				//发送缓冲区
 volatile static uint16_t USART1_TX_SP = 0;				//发送缓冲区指针
 
@@ -145,7 +147,7 @@ void SerialClass::print(double data, uint8_t ndigit) {
 	print(str);
 }
 
-void SerialClass::print(char *data, uint8_t len) {
+void SerialClass::print(char *data, uint16_t len) {
 #ifdef USE_DMA
 	if (USART1_TX_BUSY) {				//判断DMA是否在使用中
 		switch (USART1_TX_CH) {			//判断正在使用的缓冲区
@@ -274,7 +276,7 @@ char SerialClass::read() {
 	return data;
 }
 
-void SerialClass::read(char *buf, uint8_t len) {
+void SerialClass::read(char *buf, uint16_t len) {
 	while (len--) {
 		*buf++ = read();
 	}
@@ -344,7 +346,7 @@ double SerialClass::nextFloat() {
 }
 
 /*返回未读取字节个数*/
-uint8_t SerialClass::available() {
+uint16_t SerialClass::available() {
 	return USART1_RX_SP >= USART1_Read_SP ? USART1_RX_SP - USART1_Read_SP :
 	USART1_RX_Buf_Size - USART1_Read_SP + USART1_RX_SP;
 }
@@ -361,8 +363,8 @@ void SerialClass::flush() {
 	USART1_Read_SP = USART1_RX_SP;
 }
 
-uint8_t SerialClass::getlen(char* data) {
-	uint8_t len = 0;
+uint16_t SerialClass::getlen(char* data) {
+	uint16_t len = 0;
 	while (*data++ != '\0')
 		len++;
 	return len;
@@ -401,6 +403,7 @@ extern "C" void USART1_IRQHandler(void) {
 		}
 		DMA_Cmd(DMA1_Channel5, ENABLE);
 #endif
+		Serial_Event();
 	}
 #ifndef USE_DMA
 	if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
@@ -445,4 +448,8 @@ extern "C" void DMA1_Channel4_IRQHandler(void) {
 		break;
 	}
 #endif
+}
+
+void __attribute__((weak)) Serial_Event() {
+
 }

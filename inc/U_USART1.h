@@ -9,7 +9,7 @@
 #ifndef U_USART1_H_
 #define U_USART1_H_
 
-#include "stm32f10x.h"
+#include "cmsis_device.h"
 #include "Parse.h"
 
 #define USE_DMA
@@ -64,20 +64,20 @@ public:
 	void print(char *data) {
 		print(data, getlen(data));
 	}
-	void print(char* data, uint8_t len);
+	void print(char* data, uint16_t len);
 	long nextInt();
 	double nextFloat();
 	void write(char);
-	uint8_t available();
+	uint16_t available();
 	bool checkFrame();
 	char peek();
 	char peekNextDigit(bool detectDecimal = false);
 	char read();
-	void read(char* buf, uint8_t len);
+	void read(char* buf, uint16_t len);
 	void flush();
 private:
 	void DMASend(uint8_t ch);
-	uint8_t getlen(char* data);
+	uint16_t getlen(char* data);
 	void ReadSPInc();
 	void ReadSPDec();
 };
