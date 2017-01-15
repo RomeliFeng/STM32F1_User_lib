@@ -16,11 +16,11 @@ void PWMClass::Init(uint16_t Period = 4095, uint16_t Duty = 0) {
 
 void PWMClass::SetDuty(uint16_t Duty) {
 	for (uint8_t i = 1; i < 5; i++) {
-		SetDuty((PWMCh) i, Duty);
+		SetDuty((PWMCh_Typedef) i, Duty);
 	}
 }
 
-void PWMClass::SetDuty(PWMCh ch, uint16_t Duty) {
+void PWMClass::SetDuty(PWMCh_Typedef ch, uint16_t Duty) {
 	switch (ch) {
 	case PWMCh_1:
 #ifdef OC1_EN
@@ -46,13 +46,13 @@ void PWMClass::SetDuty(PWMCh ch, uint16_t Duty) {
 	}
 }
 
-void PWMClass::SetPolarity(PWMPolarity polarity) {
+void PWMClass::SetPolarity(PWMPolarity_Typedef polarity) {
 	for (uint8_t i = 1; i < 5; i++) {
-		SetPolarity((PWMCh) i, polarity);
+		SetPolarity((PWMCh_Typedef) i, polarity);
 	}
 }
 
-void PWMClass::SetPolarity(PWMCh ch, PWMPolarity polarity) {
+void PWMClass::SetPolarity(PWMCh_Typedef ch, PWMPolarity_Typedef polarity) {
 	switch (ch) {
 	case PWMCh_1:
 #ifdef OC1_EN
@@ -77,11 +77,11 @@ void PWMClass::SetPolarity(PWMCh ch, PWMPolarity polarity) {
 	}
 }
 
-void PWMClass::SetClockDiv(PWMClockDiv div) {
+void PWMClass::SetClockDiv(PWMClockDiv_Typedef div) {
 	TIM_SetClockDivision(TIM2, div);
 }
 
-void U_TIM2_GPIO_Config() {
+void PWMClass::U_TIM2_GPIO_Config() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	//开启TIM2时钟
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
@@ -110,7 +110,7 @@ void U_TIM2_GPIO_Config() {
 #endif
 }
 
-void U_TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
+void PWMClass::U_TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	//初始化TIM
@@ -151,7 +151,6 @@ void U_TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
 #elif OC2_MODE_TIMING
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Timing;
 #endif
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OC2Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC2PreloadConfig(TIM2, TIM_OCPreload_Enable);
 #endif
@@ -162,7 +161,6 @@ void U_TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
 #elif OC3_MODE_TIMING
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Timing;
 #endif
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OC3Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC3PreloadConfig(TIM2, TIM_OCPreload_Enable);
 #endif
@@ -173,25 +171,8 @@ void U_TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
 #elif OC4_MODE_TIMING
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Timing;
 #endif
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OC4Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC4PreloadConfig(TIM2, TIM_OCPreload_Enable);
-#endif
-
-#ifdef IT_CC1_EN
-	TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
-#endif
-#ifdef IT_CC2_EN
-	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
-#endif
-#ifdef IT_CC3_EN
-	TIM_ITConfig(TIM2, TIM_IT_CC3, ENABLE);
-#endif
-#ifdef IT_CC4_EN
-	TIM_ITConfig(TIM2, TIM_IT_CC4, ENABLE);
-#endif
-#ifdef IT_UPDATE_EN
-	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
 #endif
 
 	//使能TIM2重载寄存器
@@ -204,7 +185,7 @@ void PWMClass::SetPrescaler(uint16_t pre) {
 	TIM_PrescalerConfig(TIM2, pre, TIM_PSCReloadMode_Update);
 }
 
-void U_TIM2_NVIC_Config() {
+void PWMClass::U_TIM2_NVIC_Config() {
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_1);
@@ -215,6 +196,31 @@ void U_TIM2_NVIC_Config() {
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 4;
 
 	NVIC_Init(&NVIC_InitStructure);
+}
+
+void PWMClass::SwitchInterrupt(PWMCh_Typedef ch, FunctionalState NewState) {
+	switch (ch) {
+	case PWMCh_1:
+#ifdef OC1_EN
+		TIM_ITConfig(TIM2, TIM_IT_CC1, NewState);
+#endif
+		break;
+	case PWMCh_2:
+#ifdef OC2_EN
+		TIM_ITConfig(TIM2, TIM_IT_CC2, NewState);
+#endif
+		break;
+	case PWMCh_3:
+#ifdef OC3_EN
+		TIM_ITConfig(TIM2, TIM_IT_CC3, NewState);
+#endif
+		break;
+	case PWMCh_4:
+#ifdef OC4_EN
+		TIM_ITConfig(TIM2, TIM_IT_CC4, NewState);
+#endif
+		break;
+	}
 }
 
 extern "C" void TIM2_IRQHandler(void) {
@@ -255,3 +261,4 @@ void __attribute__((weak)) U_TIM2_CC4_ISR() {
 void __attribute__((weak)) U_TIM2_UPADATE_ISR() {
 	return;
 }
+

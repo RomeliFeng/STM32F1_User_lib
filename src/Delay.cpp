@@ -14,7 +14,7 @@ uint16_t Interval = 0;
 void Delay_Init(uint16_t DelayResolution_us) {
 	Interval = DelayResolution_us;
 	SysTick_Config((SystemCoreClock / (1000000 / Interval)) - 5); //Set SysTick timer=us
-	NVIC_SetPriority(SysTick_IRQn, 2);					//Set SysTick interrupt
+	NVIC_SetPriority(SysTick_IRQn, 0);					//Set SysTick interrupt
 //	SysTick->CTRL&=SysTick_CTRL_ENABLE_Msk;			//Disable SysTick
 }
 
@@ -36,4 +36,3 @@ uint64_t micros() {
 extern "C" void SysTick_Handler() {
 	nTime_now += Interval;
 }
-
