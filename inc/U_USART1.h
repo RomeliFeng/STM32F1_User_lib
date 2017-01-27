@@ -12,13 +12,13 @@
 #include "cmsis_device.h"
 #include "Parse.h"
 
-#define USE_DMA
+//#define USE_DMA
 
 #define USART1_RX_Frame_Size 128
 #define USART1_TX_Buf_Size 128
 #define USART1_RX_Buf_Size 128
 
-static char NewLine[] = { '\r', '\n', '\0' };
+static char NewLine[] = { '\r', '\n' };
 
 class SerialClass: public Parse {
 public:
