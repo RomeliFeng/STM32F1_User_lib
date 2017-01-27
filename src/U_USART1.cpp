@@ -56,6 +56,7 @@ void SerialClass::begin(uint32_t BaudRate) {
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/*串口初始化，波特率：参数1；无自动控制；双向；停止位：1位；字节：8；*/
+	USART_DeInit(USART1);
 	USART_InitStructure.USART_BaudRate = BaudRate;
 	USART_InitStructure.USART_HardwareFlowControl =
 	USART_HardwareFlowControl_None;
