@@ -37,7 +37,6 @@ void SerialClass::begin(uint32_t BaudRate) {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
-	DMA_InitTypeDef DMA_InitStructure;
 
 	/*开启GPIOA和USART1的时钟*/
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1,
@@ -68,6 +67,7 @@ void SerialClass::begin(uint32_t BaudRate) {
 	USART_Init(USART1, &USART_InitStructure);
 
 #ifdef USE_DMA
+	DMA_InitTypeDef DMA_InitStructure;
 	/*开启DMA1的时钟*/
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
 	/*DMA1 USART1 发送中断*/
@@ -208,12 +208,13 @@ void SerialClass::print(char *data, uint16_t len) {
 		DMASend(1);
 	}
 #else
-	while (*data != '\0') {
+	while (len--) {
 		write(*data++);
 	}
 #endif
 }
 
+#ifdef USE_DMA
 void SerialClass::DMASend(uint8_t ch) {
 	volatile uint8_t *TX_Buf_Add;
 	uint16_t TX_Len;
@@ -237,6 +238,7 @@ void SerialClass::DMASend(uint8_t ch) {
 	DMA1_Channel4->CNDTR = TX_Len;				//传入发送字节个数
 	DMA_Cmd(DMA1_Channel4, ENABLE);
 }
+#endif
 
 void SerialClass::write(char c) {
 #ifdef USE_DMA
