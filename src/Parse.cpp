@@ -6,9 +6,9 @@
  */
 
 #include "Parse.h"
-#include "string.h"
 
-void Parse::byNumber(unsigned long num, unsigned char base, char* str) {
+unsigned char Parse::byNumber(unsigned long num, unsigned char base,
+		unsigned char* str) {
 	unsigned char len = getLen(num, base);
 	str += len;
 	*str = '\0';
@@ -17,20 +17,25 @@ void Parse::byNumber(unsigned long num, unsigned char base, char* str) {
 		num /= base;
 		*--str = c < 10 ? c + '0' : c + 'A' - 10;
 	} while (num);
+	return len;
 }
 
-void Parse::byNumber(long num, unsigned char base, char* str) {
+unsigned char Parse::byNumber(long num, unsigned char base,
+		unsigned char* str) {
 	if (num < 0) {
 		num = -num;
 		*str++ = '-';
 	}
-	byNumber((unsigned long) num, base, str);
+	return byNumber((unsigned long) num, base, str);
 }
 
-void Parse::byFloat(double flo, unsigned char ndigit, char* str) {
+unsigned char Parse::byFloat(double flo, unsigned char ndigit,
+		unsigned char* str) {
+	unsigned char len, len2;
 	unsigned long int_part;
 	double rem_part;
-	char tmp[20];
+	unsigned char dot[1] = { '0' };
+	unsigned char tmp[20];
 	// Handle negative flos
 	if (flo < 0.0) {
 		*str++ = '-';
@@ -48,17 +53,20 @@ void Parse::byFloat(double flo, unsigned char ndigit, char* str) {
 	// Extract the integer part of the number and print it
 	int_part = (unsigned long) flo;
 	rem_part = (flo - (double) int_part);
-	byNumber(int_part, 10, tmp);
-	strcat(str, tmp);
-	if (ndigit > 0)
-		strcat(str, ".");
+	len = byNumber(int_part, 10, tmp); //转换整数部分并获取字符串长度
+	len = strcat(str, 0, tmp, len); //拼接最终字符串并获取长度
+	if (ndigit > 0) {
+		len = strcat(str, len, dot, 1);
+	}
+
 	while (ndigit-- > 0) {
 		rem_part *= 10.0;
 		int_part = (int) rem_part;
 		rem_part -= int_part;
-		byNumber(int_part, 10, tmp);
-		strcat(str, tmp);
+		len2 = byNumber(int_part, 10, tmp);
+		len = strcat(str, len, tmp, len2);
 	}
+	return len;
 }
 
 unsigned char Parse::getLen(unsigned long num, unsigned char base) {
@@ -77,4 +85,14 @@ double Parse::pow10(unsigned char power) {
 		return 1.0;
 	else
 		return 10.0 * pow10(--power);
+}
+
+unsigned char strcat(unsigned char* str_to, unsigned char str_to_len,
+		unsigned char* str_from, unsigned char str_from_len) {
+	unsigned char i;
+	for (i = 0; i < str_from_len; ++i) { //循环累加
+		str_to[str_to_len + i] = str_from[i]; //在第一个字符串后添加第二个字符串的内容
+	}
+	str_to[str_to_len + i] = '\0'; //最后加上\0
+	return str_to_len + str_from_len; //长度不含\0
 }

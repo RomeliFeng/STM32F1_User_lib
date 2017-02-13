@@ -11,6 +11,8 @@
 
 SerialClass Serial;
 
+extern void Serial_Event();
+
 volatile static uint8_t USART1_TX_Buf[USART1_TX_Buf_Size];				//发送缓冲区
 volatile static uint16_t USART1_TX_SP = 0;				//发送缓冲区指针
 
@@ -35,7 +37,6 @@ void SerialClass::begin(uint32_t BaudRate) {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
-	DMA_InitTypeDef DMA_InitStructure;
 
 	/*开启GPIOA和USART1的时钟*/
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1,
@@ -55,6 +56,7 @@ void SerialClass::begin(uint32_t BaudRate) {
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/*串口初始化，波特率：参数1；无自动控制；双向；停止位：1位；字节：8；*/
+	USART_DeInit(USART1);
 	USART_InitStructure.USART_BaudRate = BaudRate;
 	USART_InitStructure.USART_HardwareFlowControl =
 	USART_HardwareFlowControl_None;
@@ -66,6 +68,7 @@ void SerialClass::begin(uint32_t BaudRate) {
 	USART_Init(USART1, &USART_InitStructure);
 
 #ifdef USE_DMA
+	DMA_InitTypeDef DMA_InitStructure;
 	/*开启DMA1的时钟*/
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
 	/*DMA1 USART1 发送中断*/
@@ -135,17 +138,17 @@ void SerialClass::begin(uint32_t BaudRate) {
 }
 
 void SerialClass::print(long data, uint8_t base) {
-	char str[20];
-	byNumber(data, base, str);
-	print(str);
+	uint8_t str[20];
+	uint8_t len = byNumber(data, base, str);
+	print(str, len);
 }
 void SerialClass::print(double data, uint8_t ndigit) {
-	char str[20];
-	byFloat(data, ndigit, str);
-	print(str);
+	uint8_t str[20];
+	uint8_t len = byFloat(data, ndigit, str);
+	print(str, len);
 }
 
-void SerialClass::print(char *data, uint8_t len) {
+void SerialClass::print(uint8_t *data, uint16_t len) {
 #ifdef USE_DMA
 	if (USART1_TX_BUSY) {				//判断DMA是否在使用中
 		switch (USART1_TX_CH) {			//判断正在使用的缓冲区
@@ -206,12 +209,13 @@ void SerialClass::print(char *data, uint8_t len) {
 		DMASend(1);
 	}
 #else
-	while (*data != '\0') {
+	while (len--) {
 		write(*data++);
 	}
 #endif
 }
 
+#ifdef USE_DMA
 void SerialClass::DMASend(uint8_t ch) {
 	volatile uint8_t *TX_Buf_Add;
 	uint16_t TX_Len;
@@ -235,8 +239,9 @@ void SerialClass::DMASend(uint8_t ch) {
 	DMA1_Channel4->CNDTR = TX_Len;				//传入发送字节个数
 	DMA_Cmd(DMA1_Channel4, ENABLE);
 }
+#endif
 
-void SerialClass::write(char c) {
+void SerialClass::write(uint8_t c) {
 #ifdef USE_DMA
 	print(&c, 1);
 #else
@@ -246,14 +251,14 @@ void SerialClass::write(char c) {
 #endif
 }
 
-char SerialClass::peek() {
+uint8_t SerialClass::peek() {
 	if (USART1_Read_SP == USART1_RX_SP)
 		return -1;
 	else
 		return USART1_RX_Buf[USART1_Read_SP];		//取出数据
 }
 
-char SerialClass::peekNextDigit(bool detectDecimal) {
+uint8_t SerialClass::peekNextDigit(bool detectDecimal) {
 	char data = peek();
 	if (data == '-') {
 		ReadSPInc();
@@ -268,13 +273,13 @@ char SerialClass::peekNextDigit(bool detectDecimal) {
 		return -1;
 }
 
-char SerialClass::read() {
-	char data = peek();
+uint8_t SerialClass::read() {
+	uint8_t data = peek();
 	ReadSPInc();
 	return data;
 }
 
-void SerialClass::read(char *buf, uint8_t len) {
+void SerialClass::read(uint8_t *buf, uint16_t len) {
 	while (len--) {
 		*buf++ = read();
 	}
@@ -344,7 +349,7 @@ double SerialClass::nextFloat() {
 }
 
 /*返回未读取字节个数*/
-uint8_t SerialClass::available() {
+uint16_t SerialClass::available() {
 	return USART1_RX_SP >= USART1_Read_SP ? USART1_RX_SP - USART1_Read_SP :
 	USART1_RX_Buf_Size - USART1_Read_SP + USART1_RX_SP;
 }
@@ -357,12 +362,16 @@ bool SerialClass::checkFrame() {
 		return false;
 }
 
+bool SerialClass::checkBusy() {
+	return USART1_TX_BUSY == 1 ? true : false;
+}
+
 void SerialClass::flush() {
 	USART1_Read_SP = USART1_RX_SP;
 }
 
-uint8_t SerialClass::getlen(char* data) {
-	uint8_t len = 0;
+uint16_t SerialClass::getlen(uint8_t* data) {
+	uint16_t len = 0;
 	while (*data++ != '\0')
 		len++;
 	return len;
@@ -401,6 +410,7 @@ extern "C" void USART1_IRQHandler(void) {
 		}
 		DMA_Cmd(DMA1_Channel5, ENABLE);
 #endif
+		Serial_Event();
 	}
 #ifndef USE_DMA
 	if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
@@ -446,3 +456,8 @@ extern "C" void DMA1_Channel4_IRQHandler(void) {
 	}
 #endif
 }
+
+void __attribute__((weak)) Serial_Event() {
+
+}
+

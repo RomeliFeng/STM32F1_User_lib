@@ -9,27 +9,44 @@
 #ifndef U_USART1_H_
 #define U_USART1_H_
 
-#include "stm32f10x.h"
+#include "cmsis_device.h"
 #include "Parse.h"
 
 #define USE_DMA
 
-#define USART1_RX_Frame_Size 128
-#define USART1_TX_Buf_Size 128
-#define USART1_RX_Buf_Size 128
+#define USART1_RX_Frame_Size 2080
+#define USART1_TX_Buf_Size 256
+#define USART1_RX_Buf_Size 2080
 
-static char NewLine[] = { '\r', '\n', '\0' };
+static uint8_t NewLine[] = { '\r', '\n' };
 
 class SerialClass: public Parse {
 public:
 	void begin(uint32_t);
 
-	void print(long data, uint8_t base = 10);
-	void print(char data, uint8_t base = 10) {
-		print((long) data, base);
+	void print(int32_t data, uint8_t base = 10);
+
+	inline void print(int8_t data, uint8_t base = 10) {
+		print((int32_t) data, base);
 	}
-	void print(int data, uint8_t base = 10) {
-		print((long) data, base);
+	inline void print(int16_t data, uint8_t base = 10) {
+		print((int32_t) data, base);
+	}
+	inline void print(int64_t data, uint8_t base = 10) {
+		print((int32_t) data, base);
+	}
+
+	inline void print(uint8_t data, uint8_t base = 10) {
+		print((int32_t) data, base);
+	}
+	inline void print(uint16_t data, uint8_t base = 10) {
+		print((int32_t) data, base);
+	}
+	inline void print(uint32_t data, uint8_t base = 10) {
+		print((int32_t) data, base);
+	}
+	inline void print(uint64_t data, uint8_t base = 10) {
+		print((int32_t) data, base);
 	}
 
 	void print(double data, uint8_t ndigit = 2);
@@ -40,44 +57,66 @@ public:
 	void println() {
 		print(NewLine, 2);
 	}
-	void println(char *data) {
+	void println(uint8_t *data) {
 		print(data);
 		println();
 	}
-	void println(long data, uint8_t base = 10) {
+
+	inline void println(int32_t data, uint8_t base = 10) {
 		print(data, base);
 		println();
 	}
-	void println(char data, uint8_t base = 10) {
-		println((long) data, base);
+
+	inline void println(int8_t data, uint8_t base = 10) {
+		println((int32_t) data, base);
 	}
-	void println(int data, uint8_t base = 10) {
-		println((long) data, base);
+	inline void println(int16_t data, uint8_t base = 10) {
+		println((int32_t) data, base);
 	}
-	void println(double data, uint8_t ndigit = 2) {
+	inline void println(int64_t data, uint8_t base = 10) {
+		println((int32_t) data, base);
+	}
+
+	inline void println(uint8_t data, uint8_t base = 10) {
+		println((int32_t) data, base);
+	}
+	inline void println(uint16_t data, uint8_t base = 10) {
+		println((int32_t) data, base);
+	}
+	inline void println(uint32_t data, uint8_t base = 10) {
+		println((int32_t) data, base);
+	}
+	inline void println(uint64_t data, uint8_t base = 10) {
+		println((int32_t) data, base);
+	}
+
+	inline void println(double data, uint8_t ndigit = 2) {
 		print(data, ndigit);
 		println();
 	}
-	void println(float data, uint8_t ndigit = 2) {
+	inline void println(float data, uint8_t ndigit = 2) {
 		print((double) data, ndigit);
 	}
-	void print(char *data) {
+
+	void print(uint8_t *data) {
 		print(data, getlen(data));
 	}
-	void print(char* data, uint8_t len);
-	long nextInt();
+
+	void print(uint8_t* data, uint16_t len);
+	int32_t nextInt();
 	double nextFloat();
-	void write(char);
-	uint8_t available();
+	void write(uint8_t);
+	uint16_t available();
 	bool checkFrame();
-	char peek();
-	char peekNextDigit(bool detectDecimal = false);
-	char read();
-	void read(char* buf, uint8_t len);
+	bool checkBusy();
+	uint8_t peek();
+	uint8_t peekNextDigit(bool detectDecimal = false);
+	uint8_t read();
+	void read(uint8_t* buf, uint16_t len);
 	void flush();
 private:
 	void DMASend(uint8_t ch);
-	uint8_t getlen(char* data);
+	uint16_t getlen(uint8_t* data);
 	void ReadSPInc();
 	void ReadSPDec();
 };
