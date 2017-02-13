@@ -138,17 +138,17 @@ void SerialClass::begin(uint32_t BaudRate) {
 }
 
 void SerialClass::print(long data, uint8_t base) {
-	char str[20];
-	byNumber(data, base, str);
-	print(str);
+	uint8_t str[20];
+	uint8_t len = byNumber(data, base, str);
+	print(str, len);
 }
 void SerialClass::print(double data, uint8_t ndigit) {
-	char str[20];
-	byFloat(data, ndigit, str);
-	print(str);
+	uint8_t str[20];
+	uint8_t len = byFloat(data, ndigit, str);
+	print(str, len);
 }
 
-void SerialClass::print(char *data, uint16_t len) {
+void SerialClass::print(uint8_t *data, uint16_t len) {
 #ifdef USE_DMA
 	if (USART1_TX_BUSY) {				//判断DMA是否在使用中
 		switch (USART1_TX_CH) {			//判断正在使用的缓冲区
@@ -241,7 +241,7 @@ void SerialClass::DMASend(uint8_t ch) {
 }
 #endif
 
-void SerialClass::write(char c) {
+void SerialClass::write(uint8_t c) {
 #ifdef USE_DMA
 	print(&c, 1);
 #else
@@ -251,14 +251,14 @@ void SerialClass::write(char c) {
 #endif
 }
 
-char SerialClass::peek() {
+uint8_t SerialClass::peek() {
 	if (USART1_Read_SP == USART1_RX_SP)
 		return -1;
 	else
 		return USART1_RX_Buf[USART1_Read_SP];		//取出数据
 }
 
-char SerialClass::peekNextDigit(bool detectDecimal) {
+uint8_t SerialClass::peekNextDigit(bool detectDecimal) {
 	char data = peek();
 	if (data == '-') {
 		ReadSPInc();
@@ -273,13 +273,13 @@ char SerialClass::peekNextDigit(bool detectDecimal) {
 		return -1;
 }
 
-char SerialClass::read() {
-	char data = peek();
+uint8_t SerialClass::read() {
+	uint8_t data = peek();
 	ReadSPInc();
 	return data;
 }
 
-void SerialClass::read(char *buf, uint16_t len) {
+void SerialClass::read(uint8_t *buf, uint16_t len) {
 	while (len--) {
 		*buf++ = read();
 	}
@@ -366,7 +366,7 @@ void SerialClass::flush() {
 	USART1_Read_SP = USART1_RX_SP;
 }
 
-uint16_t SerialClass::getlen(char* data) {
+uint16_t SerialClass::getlen(uint8_t* data) {
 	uint16_t len = 0;
 	while (*data++ != '\0')
 		len++;
