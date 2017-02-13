@@ -362,6 +362,10 @@ bool SerialClass::checkFrame() {
 		return false;
 }
 
+bool SerialClass::checkBusy() {
+	return USART1_TX_BUSY == 1 ? true : false;
+}
+
 void SerialClass::flush() {
 	USART1_Read_SP = USART1_RX_SP;
 }
@@ -456,3 +460,4 @@ extern "C" void DMA1_Channel4_IRQHandler(void) {
 void __attribute__((weak)) Serial_Event() {
 
 }
+

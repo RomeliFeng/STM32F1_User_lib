@@ -108,6 +108,7 @@ public:
 	void write(uint8_t);
 	uint16_t available();
 	bool checkFrame();
+	bool checkBusy();
 	uint8_t peek();
 	uint8_t peekNextDigit(bool detectDecimal = false);
 	uint8_t read();
