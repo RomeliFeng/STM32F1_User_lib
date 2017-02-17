@@ -11,12 +11,16 @@ U_ADC1Class U_ADC1;
 
 uint16_t U_ADC1Data = 0;
 
-void U_ADC1Class::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
-	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime);
-	ADC_SoftwareStartConvCmd(ADC1, ENABLE);
-	while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
+void U_ADC1Class::RefreshData() {
+	ADC1->CR2 |= ((uint32_t) 0x00500000);
+	while ((ADC1->SR & ADC_FLAG_EOC) == (uint8_t) RESET)
 		;
 	U_ADC1Data = ADC1->DR;
+}
+
+void U_ADC1Class::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
+	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime);
+	RefreshData();
 }
 
 void U_ADC1Class::ADCModeInit() {

@@ -27,7 +27,8 @@ public:
 		GPIOInit();
 		ADCModeInit();
 	}
-	void RefreshData(uint8_t ADC_Channel,uint8_t ADC_SampleTime);
+	void RefreshData();
+	void RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime);
 private:
 	void GPIOInit();
 	void ADCModeInit();
