@@ -25,7 +25,6 @@ void PWMClass::SetDuty(PWMCh_Typedef ch, uint16_t Duty) {
 	case PWMCh_1:
 #ifdef OC1_EN
 		TIM_SetCompare1(TIM2, Duty);
-
 #endif
 		break;
 	case PWMCh_2:
@@ -202,21 +201,25 @@ void PWMClass::SwitchInterrupt(PWMCh_Typedef ch, FunctionalState NewState) {
 	switch (ch) {
 	case PWMCh_1:
 #ifdef OC1_EN
+		TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
 		TIM_ITConfig(TIM2, TIM_IT_CC1, NewState);
 #endif
 		break;
 	case PWMCh_2:
 #ifdef OC2_EN
+		TIM_ClearITPendingBit(TIM2, TIM_IT_CC2);
 		TIM_ITConfig(TIM2, TIM_IT_CC2, NewState);
 #endif
 		break;
 	case PWMCh_3:
 #ifdef OC3_EN
+		TIM_ClearITPendingBit(TIM2, TIM_IT_CC3);
 		TIM_ITConfig(TIM2, TIM_IT_CC3, NewState);
 #endif
 		break;
 	case PWMCh_4:
 #ifdef OC4_EN
+		TIM_ClearITPendingBit(TIM2, TIM_IT_CC4);
 		TIM_ITConfig(TIM2, TIM_IT_CC4, NewState);
 #endif
 		break;
