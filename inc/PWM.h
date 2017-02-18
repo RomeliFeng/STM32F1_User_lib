@@ -71,9 +71,9 @@ public:
 	void SetPrescaler(uint16_t pre);
 	void SwitchInterrupt(PWMCh_Typedef ch, FunctionalState NewState);
 private:
-	void U_TIM2_GPIO_Config();
-	void U_TIM2_Mode_Config(uint16_t Period, uint16_t Duty);
-	void U_TIM2_NVIC_Config();
+	void GPIOInit();
+	void TIMInit(uint16_t Period, uint16_t Duty);
+	void NVICInit();
 };
 
 extern void U_TIM2_CC1_ISR();

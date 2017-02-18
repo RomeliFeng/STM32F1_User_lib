@@ -9,9 +9,9 @@
 PWMClass PWM;
 
 void PWMClass::Init(uint16_t Period = 4095, uint16_t Duty = 0) {
-	U_TIM2_GPIO_Config();
-	U_TIM2_NVIC_Config();
-	U_TIM2_Mode_Config(Period, Duty);
+	GPIOInit();
+	TIMInit(Period, Duty);
+	NVICInit();
 }
 
 void PWMClass::SetDuty(uint16_t Duty) {
@@ -80,7 +80,7 @@ void PWMClass::SetClockDiv(PWMClockDiv_Typedef div) {
 	TIM_SetClockDivision(TIM2, div);
 }
 
-void PWMClass::U_TIM2_GPIO_Config() {
+void PWMClass::GPIOInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	//开启TIM2时钟
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
@@ -109,7 +109,7 @@ void PWMClass::U_TIM2_GPIO_Config() {
 #endif
 }
 
-void PWMClass::U_TIM2_Mode_Config(uint16_t Period, uint16_t Duty) {
+void PWMClass::TIMInit(uint16_t Period, uint16_t Duty) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	//初始化TIM
@@ -184,7 +184,7 @@ void PWMClass::SetPrescaler(uint16_t pre) {
 	TIM_PrescalerConfig(TIM2, pre, TIM_PSCReloadMode_Update);
 }
 
-void PWMClass::U_TIM2_NVIC_Config() {
+void PWMClass::NVICInit() {
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_1);
