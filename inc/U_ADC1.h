@@ -1,7 +1,7 @@
 /*
  * U_ADC1.h
  *
- *  Created on: 2016Äê11ÔÂ23ÈÕ
+ *  Created on: 2016ï¿½ï¿½11ï¿½ï¿½23ï¿½ï¿½
  *      Author: Romeli
  */
 
@@ -17,6 +17,7 @@ public:
 	U_ADC1Class() {
 		ADCInit();
 	}
+	void RegularChannelConfig(uint8_t ADC_Channel, uint8_t ADC_SampleTime);
 	void RefreshData();
 	void RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime);
 private:
