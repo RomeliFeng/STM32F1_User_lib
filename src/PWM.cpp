@@ -1,7 +1,7 @@
 /*
  * PWM.cpp
  *
- *  Created on: 2016Äê4ÔÂ30ÈÕ
+ *  Created on: 2016ï¿½ï¿½4ï¿½ï¿½30ï¿½ï¿½
  *      Author: Romeli
  */
 #include "PWM.h"
@@ -82,13 +82,13 @@ void PWMClass::SetClockDiv(PWMClockDiv_Typedef div) {
 
 void PWMClass::GPIOInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
-	//¿ªÆôTIM2Ê±ÖÓ
+	//ï¿½ï¿½ï¿½ï¿½TIM2Ê±ï¿½ï¿½
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 
 #if (OC1_MODE_PWM1 | OC2_MODE_PWM1 | OC3_MODE_PWM1 | OC4_MODE_PWM1)
-	//¿ªÆôGPIOAÊ±ÖÓ
+	//ï¿½ï¿½ï¿½ï¿½GPIOAÊ±ï¿½ï¿½
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-	//ÅäÖÃPA0-PA3£»¸´ÓÃÍÆÍìÊä³ö£»×î¿ìËÙ¶È50M£»
+	//ï¿½ï¿½ï¿½ï¿½PA0-PA3ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½50Mï¿½ï¿½
 	GPIO_InitStructure.GPIO_Pin = 0;
 #ifdef OC1_MODE_PWM1
 	GPIO_InitStructure.GPIO_Pin |= GPIO_Pin_0;
@@ -112,28 +112,29 @@ void PWMClass::GPIOInit() {
 void PWMClass::TIMInit(uint16_t Period, uint16_t Duty) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
-	//³õÊ¼»¯TIM
-	//¼ÆÊýÒç³öÊýÖµ
+	//ï¿½ï¿½Ê¼ï¿½ï¿½TIM
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
 	TIM_TimeBaseStructure.TIM_Period = Period;
-	//Ô¤·ÖÆµÏµÊý£º²»·ÖÆµ
+	//Ô¤ï¿½ï¿½ÆµÏµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµ
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
-	//Ê±ÖÓ·ÖÆµÏµÊý£º²»·ÖÆµ
+	//Ê±ï¿½Ó·ï¿½ÆµÏµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµ
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	//ÏòÉÏ¼ÆÊýÄ£Ê½
+	//ï¿½ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½Ä£Ê½
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	//³õÊ¼»¯TIM2
+	//ï¿½ï¿½Ê¼ï¿½ï¿½TIM2
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
 
-	//ÅäÖÃÄ£Ê½ÎªPWM1
+	//ï¿½ï¿½ï¿½ï¿½Ä£Ê½ÎªPWM1
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-	//ÉèÖÃÌø±äÖµÎªÕ¼¿Õ±È
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎªÕ¼ï¿½Õ±ï¿½
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = Duty;
-	//ÉèÖÃPWM³õÊ¼Îª¸ßµçÆ½£¬Ìø±äºóÎªµÍµçÆ½
+	//ï¿½ï¿½ï¿½ï¿½PWMï¿½ï¿½Ê¼Îªï¿½ßµï¿½Æ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½Íµï¿½Æ½
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	//Ä¬ÈÏÕ¼¿Õ±ÈÒ»ÖÂ¹Ê²»½øÐÐÕ¼¿Õ±ÈÐÞ¸Ä
+	//Ä¬ï¿½ï¿½Õ¼ï¿½Õ±ï¿½Ò»ï¿½Â¹Ê²ï¿½ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½Õ±ï¿½ï¿½Þ¸ï¿½
 
-	//Ê¹ÄÜÍ¨µÀ1
+	//Ê¹ï¿½ï¿½Í¨ï¿½ï¿½1
 #ifdef OC1_EN
 #if OC1_MODE_PWM1
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
@@ -143,7 +144,7 @@ void PWMClass::TIMInit(uint16_t Period, uint16_t Duty) {
 	TIM_OC1Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
 #endif
-	//Ê¹ÄÜÍ¨µÀ2
+	//Ê¹ï¿½ï¿½Í¨ï¿½ï¿½2
 #ifdef OC2_EN
 #if OC2_MODE_PWM1
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
@@ -153,7 +154,7 @@ void PWMClass::TIMInit(uint16_t Period, uint16_t Duty) {
 	TIM_OC2Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC2PreloadConfig(TIM2, TIM_OCPreload_Enable);
 #endif
-	//Ê¹ÄÜÍ¨µÀ3
+	//Ê¹ï¿½ï¿½Í¨ï¿½ï¿½3
 #ifdef OC3_EN
 #if OC3_MODE_PWM1
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
@@ -163,7 +164,7 @@ void PWMClass::TIMInit(uint16_t Period, uint16_t Duty) {
 	TIM_OC3Init(TIM2, &TIM_OCInitStructure);
 	TIM_OC3PreloadConfig(TIM2, TIM_OCPreload_Enable);
 #endif
-	//Ê¹ÄÜÍ¨µÀ4
+	//Ê¹ï¿½ï¿½Í¨ï¿½ï¿½4
 #ifdef OC4_EN
 #if OC4_MODE_PWM1
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
@@ -174,9 +175,9 @@ void PWMClass::TIMInit(uint16_t Period, uint16_t Duty) {
 	TIM_OC4PreloadConfig(TIM2, TIM_OCPreload_Enable);
 #endif
 
-	//Ê¹ÄÜTIM2ÖØÔØ¼Ä´æÆ÷
+	//Ê¹ï¿½ï¿½TIM2ï¿½ï¿½ï¿½Ø¼Ä´ï¿½ï¿½ï¿½
 	TIM_ARRPreloadConfig(TIM2, ENABLE);
-	//Ê¹ÄÜ¶¨Ê±Æ÷2
+	//Ê¹ï¿½Ü¶ï¿½Ê±ï¿½ï¿½2
 	TIM_Cmd(TIM2, ENABLE);
 }
 
