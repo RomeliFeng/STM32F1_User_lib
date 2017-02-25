@@ -8,46 +8,42 @@
 #ifndef PID_H_
 #define PID_H_
 
-typedef enum {
-	PIDMode_Diff, PIDMode_Post  //Post Î»ÖÃÐÍ
-} PIDMode;
-typedef enum {
-	PIDPostionPos, PIDPostionNeg
-} PIDPostion;
+typedef enum _PIDMode_Typedef {
+	PIDMode_Diff, PIDMode_Post  //Post Î»ï¿½ï¿½ï¿½ï¿½
+} PIDMode_Typedef;
 
-struct PIDClass {
+typedef struct _PIDParam_Typedef {
+	double kp;
+	double ki;
+	double kd;
+	double set;
+	double now;
+	double out;
+	double out_min;
+	double out_max;
+} PIDParam_Typedef;
+
+class PIDClass {
 public:
-	PIDClass(double p, double i, double d, double *set, double *now,
-			double *out, double min, double max, PIDPostion postion,
-			PIDMode mode);
+	PIDClass(PIDParam_Typedef *pidParam, PIDMode_Typedef mode) {
+		PIDParam = pidParam;
+		Mode = mode;
+	}
+	void SetPIDParam(PIDParam_Typedef *pidParam) {
+		PIDParam = pidParam;
+	}
 	void Compute();
-	void SetTuningP(double p);
-	void SetTuningI(double i);
-	void SetTuningD(double d);
-	void SetTunings(double p, double i, double d);
-	void SetOutputLimits(double min, double max);
-	void Clear();
+	void Clear(){
+		iTerm = 0;
+	}
 
 private:
-	double Kp;
-	double Ki;
-	double Kd;
-
-	double pError;
-	double Last;
-	double iTerm;
-	double DTerm;
-
-	double *Set;
-	double *Now;
-	double *Out;
-
-	double OutMin;
-	double OutMax;
-
-	PIDPostion Postion;
-	PIDMode Mode;
-
+	PIDParam_Typedef *PIDParam;
+	PIDMode_Typedef Mode = PIDMode_Diff;
+	double Last = 0;
+	double pError = 0;
+	double iTerm = 0;
+	double dTerm = 0;
 };
 
 #endif /* PID_H_ */
