@@ -1,7 +1,7 @@
 /*
  * U_USART1.h
  *
- *  Created on: 2016Äê1ÔÂ18ÈÕ
+ *  Created on: 2016ï¿½ï¿½1ï¿½ï¿½18ï¿½ï¿½
  *      Author: Romeli
  *      Version: V1.0
  */
@@ -57,8 +57,16 @@ public:
 	void println() {
 		print(NewLine, 2);
 	}
-	void println(uint8_t *data) {
+	inline void println(int8_t *data) {
+		print((uint8_t *) data);
+		println();
+	}
+	inline void println(uint8_t *data) {
 		print(data);
+		println();
+	}
+	inline void println(const char *data) {
+		print((uint8_t *) data);
 		println();
 	}
 
@@ -100,6 +108,12 @@ public:
 
 	void print(uint8_t *data) {
 		print(data, getlen(data));
+	}
+	inline void print(char *data) {
+		print((uint8_t *) data, getlen((uint8_t *) data));
+	}
+	inline void print(const char *data) {
+		print((uint8_t *) data, getlen((uint8_t *) data));
 	}
 
 	void print(uint8_t* data, uint16_t len);

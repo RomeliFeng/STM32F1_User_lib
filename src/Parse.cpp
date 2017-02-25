@@ -1,7 +1,7 @@
 /*
  * Parse.cpp
  *
- *  Created on: 2016Äê10ÔÂ6ÈÕ
+ *  Created on: 2016ï¿½ï¿½10ï¿½ï¿½6ï¿½ï¿½
  *      Author: Romeli
  */
 
@@ -31,17 +31,19 @@ unsigned char Parse::byNumber(long num, unsigned char base,
 
 unsigned char Parse::byFloat(double flo, unsigned char ndigit,
 		unsigned char* str) {
-	unsigned char len, len2;
-	unsigned long int_part;
-	double rem_part;
-	unsigned char dot[1] = { '0' };
+	unsigned char len = 0, len2 = 0;
+	unsigned long int_part = 0;
+	double rem_part = 0;
+
+	unsigned char dot = '.';
+
 	unsigned char tmp[20];
 	// Handle negative flos
 	if (flo < 0.0) {
-		*str++ = '-';
+		str[len] = '-';
 		flo = -flo;
+		len++; //å­—ç¬¦ä¸²é•¿åº¦+1 â€˜-â€™å·é•¿åº¦
 	}
-	*str = '\0';
 
 	// Round correctly so that print(1.999, 2) prints as "2.00"
 	double rounding = 0.5;
@@ -53,18 +55,17 @@ unsigned char Parse::byFloat(double flo, unsigned char ndigit,
 	// Extract the integer part of the number and print it
 	int_part = (unsigned long) flo;
 	rem_part = (flo - (double) int_part);
-	len = byNumber(int_part, 10, tmp); //×ª»»ÕûÊı²¿·Ö²¢»ñÈ¡×Ö·û´®³¤¶È
-	len = strcat(str, 0, tmp, len); //Æ´½Ó×îÖÕ×Ö·û´®²¢»ñÈ¡³¤¶È
-	if (ndigit > 0) {
-		len = strcat(str, len, dot, 1);
-	}
 
-	while (ndigit-- > 0) {
-		rem_part *= 10.0;
-		int_part = (int) rem_part;
-		rem_part -= int_part;
-		len2 = byNumber(int_part, 10, tmp);
-		len = strcat(str, len, tmp, len2);
+	len2 = byNumber(int_part, 10, tmp); //è½¬æ¢æ•´æ•°éƒ¨åˆ†
+	len = strcat(str, len, tmp, len2); //æ‹¼æ¥æ•´æ•°éƒ¨åˆ†åˆ°å­—ç¬¦ä¸²
+	if (ndigit > 0) { //å¦‚æœæœ‰å°æ•°éƒ¨åˆ†
+		len = strcat(str, len, &dot, 1);
+		while (ndigit--) {
+			rem_part *= 10;
+			int_part = (int) rem_part;	//æ¯æ¬¡è½¬æ¢ä¸€ä½å°æ•°
+			rem_part -= int_part;
+			str[len++] = int_part + 0x30;
+		}
 	}
 	return len;
 }
@@ -87,12 +88,12 @@ double Parse::pow10(unsigned char power) {
 		return 10.0 * pow10(--power);
 }
 
-unsigned char strcat(unsigned char* str_to, unsigned char str_to_len,
+unsigned char Parse::strcat(unsigned char* str_to, unsigned char str_to_len,
 		unsigned char* str_from, unsigned char str_from_len) {
 	unsigned char i;
-	for (i = 0; i < str_from_len; ++i) { //Ñ­»·ÀÛ¼Ó
-		str_to[str_to_len + i] = str_from[i]; //ÔÚµÚÒ»¸ö×Ö·û´®ºóÌí¼ÓµÚ¶ş¸ö×Ö·û´®µÄÄÚÈİ
+	for (i = 0; i < str_from_len; ++i) { //æ¬ç§»æ•°æ®
+		str_to[str_to_len + i] = str_from[i];
 	}
-	str_to[str_to_len + i] = '\0'; //×îºó¼ÓÉÏ\0
-	return str_to_len + str_from_len; //³¤¶È²»º¬\0
+	str_to[str_to_len + i] = '\0'; //åœ¨å­—ç¬¦ä¸²æœ«å°¾å¡«'\0'
+	return str_to_len + str_from_len; //è¿”å›å­—ç¬¦ä¸²é•¿åº¦
 }

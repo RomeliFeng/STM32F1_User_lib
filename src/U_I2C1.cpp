@@ -1,7 +1,7 @@
 /*
  * U_I2C1.cpp
  *
- *  Created on: 2016Äê2ÔÂ7ÈÕ
+ *  Created on: 2016ï¿½ï¿½2ï¿½ï¿½7ï¿½ï¿½
  *      Author: Romeli
  */
 #include "U_I2C1.h"
@@ -18,7 +18,7 @@
 
 #define I2C1_TX_Buf_Size 64
 
-I2CClass I2C;
+U_I2C1Class U_I2C1;
 
 volatile static uint8_t I2C1_Busy = 0;
 volatile static uint8_t I2C1_Direction;
@@ -28,61 +28,11 @@ volatile static uint8_t I2C1_Device_Add = 0;
 volatile static uint8_t I2C1_Tx_Buf[I2C1_TX_Buf_Size];
 volatile static uint8_t I2C1_Tx_Index = 0;
 volatile static uint8_t I2C1_Tx_Size = 0;
-volatile static uint8_t* I2C1_Rx_Buf;
+volatile static uint8_t *I2C1_Rx_Buf;
 volatile static uint8_t I2C1_Rx_Index = 0;
 volatile static uint8_t I2C1_Rx_Size = 0;
 
-void I2CClass::Init(uint32_t Speed) {
-	I2C_InitTypeDef I2C_InitStructure;
-	NVIC_InitTypeDef NVIC_InitTypeStructure;
-
-	I2C_GPIO_Init();
-
-	I2C_DeInit(I2C1);
-
-	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
-	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-	I2C_InitStructure.I2C_ClockSpeed = Speed;
-	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_16_9;
-	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
-	I2C_InitStructure.I2C_OwnAddress1 = SlaveAddress;
-
-	I2C_Init(I2C1, &I2C_InitStructure);
-
-	I2C_ITConfig(I2C1, I2C_IT_ERR, ENABLE);
-
-	I2C_Cmd(I2C1, ENABLE);
-
-	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_1);
-
-	NVIC_InitTypeStructure.NVIC_IRQChannel = I2C1_EV_IRQn;
-	NVIC_InitTypeStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_InitTypeStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitTypeStructure.NVIC_IRQChannelSubPriority = 0;
-
-	NVIC_Init(&NVIC_InitTypeStructure);
-
-	NVIC_InitTypeStructure.NVIC_IRQChannel = I2C1_ER_IRQn;
-	NVIC_InitTypeStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_InitTypeStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitTypeStructure.NVIC_IRQChannelSubPriority = 0;
-
-	NVIC_Init(&NVIC_InitTypeStructure);
-}
-void I2C_GPIO_Init() {
-	GPIO_InitTypeDef GPIO_InitStructure;
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);  //£¡£¡£¡ÐèÒª´ò¿ªI2CÊ±ÖÓ²Å¿ÉÉèÖÃÒý½ÅÄ£Ê½
-
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-}
-
-void I2CClass::SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
+void U_I2C1Class::SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 		uint8_t size) {
 	uint16_t i = 0;
 	while (I2C1_Busy)
@@ -91,10 +41,11 @@ void I2CClass::SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 		i++;
 		if (i > 30000) {
 			ExitBusy();
+			i = 0;
 		}
 	}
 	I2C1_Sub_Add_Flag = 1;
-	I2C1_Busy = 1;  //ÉèÖÃI2CÃ¦±êÊ¶
+	I2C1_Busy = 1;  //ï¿½ï¿½ï¿½ï¿½I2CÃ¦ï¿½ï¿½Ê¶
 	I2C1_Direction = I2C_Direction_Transmitter;
 	I2C1_Device_Add = D_Add;
 
@@ -106,16 +57,16 @@ void I2CClass::SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t* dataBuf,
 		I2C1_Tx_Buf[i + 1] = *(dataBuf + i);
 	}
 
-	I2C1->CR1 |= CR1_ACK_Set;  //´ò¿ª×Ô¶¯Ó¦´ð
+	I2C1->CR1 |= CR1_ACK_Set;  //ï¿½ï¿½ï¿½Ô¶ï¿½Ó¦ï¿½ï¿½
 	I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, ENABLE);
-	I2C1->CR1 |= I2C_CR1_START;  //·¢ËÍ¿ªÊ¼Ê±Ðò
+	I2C1->CR1 |= I2C_CR1_START;  //ï¿½ï¿½ï¿½Í¿ï¿½Ê¼Ê±ï¿½ï¿½
 }
 
-void I2CClass::SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t data) {
+void U_I2C1Class::SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t data) {
 	SendAsync(D_Add, W_Add, &data, 1);
 }
 
-void I2CClass::ReceiveSync(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
+void U_I2C1Class::ReceiveSync(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 		uint8_t size) {
 	uint16_t i = 0;
 	while (I2C1_Busy)
@@ -124,10 +75,11 @@ void I2CClass::ReceiveSync(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 		i++;
 		if (i > 30000) {
 			ExitBusy();
+			i = 0;
 		}
 	}
 	I2C1_Sub_Add_Flag = 1;
-	I2C1_Busy = 1;  //ÉèÖÃI2CÃ¦±êÊ¶
+	I2C1_Busy = 1;  //ï¿½ï¿½ï¿½ï¿½I2CÃ¦ï¿½ï¿½Ê¶
 	I2C1_Direction = I2C_Direction_Receiver;
 	I2C1_Device_Add = D_Add;
 
@@ -139,15 +91,15 @@ void I2CClass::ReceiveSync(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 	I2C1_Rx_Size = size;
 	I2C1_Rx_Buf = dataBuf;
 
-	I2C1->CR1 |= CR1_ACK_Set;  //´ò¿ª×Ô¶¯Ó¦´ð
+	I2C1->CR1 |= CR1_ACK_Set;  //ï¿½ï¿½ï¿½Ô¶ï¿½Ó¦ï¿½ï¿½
 	I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, ENABLE);
-	I2C1->CR1 |= I2C_CR1_START;  //·¢ËÍ¿ªÊ¼Ê±Ðò
+	I2C1->CR1 |= I2C_CR1_START;  //ï¿½ï¿½ï¿½Í¿ï¿½Ê¼Ê±ï¿½ï¿½
 
 	while (I2C1_Busy)
 		;
 }
 
-uint8_t I2CClass::ReceiveSync(uint8_t D_Add, uint8_t R_Add) {
+uint8_t U_I2C1Class::ReceiveSync(uint8_t D_Add, uint8_t R_Add) {
 	uint8_t data;
 	ReceiveSync(D_Add, R_Add, &data, 1);
 	while (I2C1_Busy != 0)
@@ -155,7 +107,54 @@ uint8_t I2CClass::ReceiveSync(uint8_t D_Add, uint8_t R_Add) {
 	return data;
 }
 
-void I2CClass::ExitBusy() {
+void U_I2C1Class::GPIOInit() {
+	GPIO_InitTypeDef GPIO_InitStructure;
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+}
+
+void U_I2C1Class::I2CInit() {
+	I2C_InitTypeDef I2C_InitStructure;
+
+	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+	I2C_InitStructure.I2C_ClockSpeed = I2CSpeed;
+	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_16_9;
+	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
+	I2C_InitStructure.I2C_OwnAddress1 = SlaveAddress;
+	I2C_Init(I2C1, &I2C_InitStructure);
+}
+
+void U_I2C1Class::NVICInit() {
+	NVIC_InitTypeDef NVIC_InitTypeStructure;
+
+	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_1);
+
+	NVIC_InitTypeStructure.NVIC_IRQChannel = I2C1_EV_IRQn;
+	NVIC_InitTypeStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitTypeStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitTypeStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_Init(&NVIC_InitTypeStructure);
+
+	NVIC_InitTypeStructure.NVIC_IRQChannel = I2C1_ER_IRQn;
+	NVIC_InitTypeStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitTypeStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitTypeStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_Init(&NVIC_InitTypeStructure);
+
+	I2C_ClearITPendingBit(I2C1, I2C_IT_ERR);
+	I2C_ITConfig(I2C1, I2C_IT_ERR, ENABLE);
+
+	I2C_Cmd(I2C1, ENABLE);
+}
+
+void U_I2C1Class::ExitBusy() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
@@ -165,84 +164,84 @@ void I2CClass::ExitBusy() {
 	uint16_t i = 0;
 
 	for (uint8_t j = 0; j < 9; j++) {
-		GPIO_SetBits(GPIOB, GPIO_Pin_6);  //À­¸ßSCL
+		GPIO_SetBits(GPIOB, GPIO_Pin_6);  //ï¿½ï¿½ï¿½ï¿½SCL
 		while (i < 80)
 			i++;
 		i = 0;
-		GPIO_ResetBits(GPIOB, GPIO_Pin_6);  //À­µÍSCL
+		GPIO_ResetBits(GPIOB, GPIO_Pin_6);  //ï¿½ï¿½ï¿½ï¿½SCL
 		while (i < 80)
 			i++;
 		i = 0;
 	}
 
-	GPIO_SetBits(GPIOB, GPIO_Pin_6);  //À­¸ßSCL
+	GPIO_SetBits(GPIOB, GPIO_Pin_6);  //ï¿½ï¿½ï¿½ï¿½SCL
 	while (i < 80)
 		i++;
 	i = 0;
-	//·¢ËÍÒ»¸öµÍµçÆ½Âö³å
-	GPIO_SetBits(GPIOB, GPIO_Pin_7);  //À­¸ßSDA
+	//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Íµï¿½Æ½ï¿½ï¿½ï¿½ï¿½
+	GPIO_SetBits(GPIOB, GPIO_Pin_7);  //ï¿½ï¿½ï¿½ï¿½SDA
 	while (i < 80)
 		i++;
 	i = 0;
-	GPIO_ResetBits(GPIOB, GPIO_Pin_7);  //À­µÍSDA
+	GPIO_ResetBits(GPIOB, GPIO_Pin_7);  //ï¿½ï¿½ï¿½ï¿½SDA
 	while (i < 80)
 		i++;
 	i = 0;
-	GPIO_SetBits(GPIOB, GPIO_Pin_7);  //À­¸ßSDA
+	GPIO_SetBits(GPIOB, GPIO_Pin_7);  //ï¿½ï¿½ï¿½ï¿½SDA
 	while (i < 80)
 		i++;
 	i = 0;
 
-	I2C1->CR1 |= I2C_CR1_SWRST;  //¸´Î»I2C1w
-	I2C1->CR1 &= ~I2C_CR1_SWRST;  //½â³ý¸´Î»
-	I2C_GPIO_Init();
+	I2C1->CR1 |= I2C_CR1_SWRST;  //ï¿½ï¿½Î»I2C1w
+	I2C1->CR1 &= ~I2C_CR1_SWRST;  //ï¿½ï¿½ï¿½ï¿½ï¿½Î»
+	GPIOInit();
 }
 
 extern "C" void I2C1_EV_IRQHandler(void) {
 	uint32_t Event = I2C_GetLastEvent(I2C1);
 
 	switch (Event) {
-	case I2C_EVENT_MASTER_MODE_SELECT:		//I2C¿ªÊ¼ÊÂ¼þ
+	case I2C_EVENT_MASTER_MODE_SELECT:		//I2Cï¿½ï¿½Ê¼ï¿½Â¼ï¿½
 		if (I2C1_Tx_Index == 0 && I2C1_Sub_Add_Flag)
 			I2C_Send7bitAddress(I2C1, I2C1_Device_Add,
 			I2C_Direction_Transmitter);
 		else
 			I2C_Send7bitAddress(I2C1, I2C1_Device_Add, I2C1_Direction);
 		break;
-	case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED://Ð´Ä£Ê½Ñ¡ÖÐ
+	case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED:		//Ð´Ä£Ê½Ñ¡ï¿½ï¿½
 		I2C1->DR = I2C1_Tx_Buf[I2C1_Tx_Index++];
 		break;
-	case I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED://¶ÁÄ£Ê½Ñ¡ÖÐ
+	case I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED:		//ï¿½ï¿½Ä£Ê½Ñ¡ï¿½ï¿½
 		if (I2C1_Rx_Size == 1) {
-			I2C1->CR1 &= CR1_ACK_Reset;		//¹Ø±Õ×Ô¶¯Ó¦´ð
-			I2C1->CR1 |= CR1_STOP_Set;		//·¢ËÍ½áÊøÊ±Ðò
+			I2C1->CR1 &= CR1_ACK_Reset;		//ï¿½Ø±ï¿½ï¿½Ô¶ï¿½Ó¦ï¿½ï¿½
+			I2C1->CR1 |= CR1_STOP_Set;		//ï¿½ï¿½ï¿½Í½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 		}
 		break;
-	case I2C_EVENT_MASTER_BYTE_TRANSMITTING://TXE±êÖ¾
+	case I2C_EVENT_MASTER_BYTE_TRANSMITTING:		//TXEï¿½ï¿½Ö¾
 		if (I2C1_Direction == I2C_Direction_Transmitter) {
 			if (I2C1_Tx_Index < I2C1_Tx_Size) {
 				I2C1->DR = I2C1_Tx_Buf[I2C1_Tx_Index++];
 			}
 		}
 		break;
-	case I2C_EVENT_MASTER_BYTE_TRANSMITTED://TXE&BTF±êÖ¾
+	case I2C_EVENT_MASTER_BYTE_TRANSMITTED:		//TXE&BTFï¿½ï¿½Ö¾
 		if (I2C1_Direction == I2C_Direction_Receiver) {
-			I2C1->CR1 |= I2C_CR1_START;		//·¢ËÍ¿ªÊ¼Ê±Ðò
+			I2C1->CR1 |= I2C_CR1_START;		//ï¿½ï¿½ï¿½Í¿ï¿½Ê¼Ê±ï¿½ï¿½
 		} else {
 			if (I2C1_Tx_Index < I2C1_Tx_Size)
 				I2C1->DR = I2C1_Tx_Buf[I2C1_Tx_Index++];
 			else {
 				I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, DISABLE);
-				I2C1->CR1 |= CR1_STOP_Set;		//·¢ËÍ½áÊøÊ±Ðò
+				I2C1->CR1 |= CR1_STOP_Set;		//ï¿½ï¿½ï¿½Í½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 				I2C1_Busy = 0;
 			}
 		}
 		break;
-	case I2C_EVENT_MASTER_BYTE_RECEIVED://RXE±êÖ¾
-		I2C1_Rx_Buf[I2C1_Rx_Index++] = I2C1->DR;		//¶ÁÈ¡Êý¾Ý
+	case I2C_EVENT_MASTER_BYTE_RECEIVED:		//RXEï¿½ï¿½Ö¾
+		I2C1_Rx_Buf[I2C1_Rx_Index++] = I2C1->DR;		//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½
 		if (I2C1_Rx_Index == I2C1_Rx_Size - 1) {
-			I2C1->CR1 &= CR1_ACK_Reset;		//¹Ø±Õ×Ô¶¯Ó¦´ð
-			I2C1->CR1 |= CR1_STOP_Set;		//·¢ËÍ½áÊøÊ±Ðò
+			I2C1->CR1 &= CR1_ACK_Reset;		//ï¿½Ø±ï¿½ï¿½Ô¶ï¿½Ó¦ï¿½ï¿½
+			I2C1->CR1 |= CR1_STOP_Set;		//ï¿½ï¿½ï¿½Í½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 		}
 		if (I2C1_Rx_Index == I2C1_Rx_Size) {
 			I2C_ITConfig(I2C1, I2C_IT_EVT | I2C_IT_BUF, DISABLE);
@@ -254,22 +253,22 @@ extern "C" void I2C1_EV_IRQHandler(void) {
 	}
 }
 extern "C" void I2C1_ER_IRQHandler(void) {
-	if (I2C1->SR1 & 1 << 10) {		//Ó¦´ðÊ§°Ü
-		I2C1->SR1 &= ~(1 << 10); //Çå³ýÖÐ¶Ï
+	if (I2C1->SR1 & 1 << 10) {		//Ó¦ï¿½ï¿½Ê§ï¿½ï¿½
+		I2C1->SR1 &= ~(1 << 10); //ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½
 	}
-	if (I2C1->SR1 & 1 << 14) { //³¬Ê±
-		I2C1->SR1 &= ~(1 << 14); //Çå³ýÖÐ¶Ï
+	if (I2C1->SR1 & 1 << 14) { //ï¿½ï¿½Ê±
+		I2C1->SR1 &= ~(1 << 14); //ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½
 	}
-	if (I2C1->SR1 & 1 << 11) { //¹ýÔØ/Ç·ÔØ
-		I2C1->SR1 &= ~(1 << 11); //Çå³ýÖÐ¶Ï
+	if (I2C1->SR1 & 1 << 11) { //ï¿½ï¿½ï¿½ï¿½/Ç·ï¿½ï¿½
+		I2C1->SR1 &= ~(1 << 11); //ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½
 	}
-	if (I2C1->SR1 & 1 << 9) { //ÖÙ²Ã¶ªÊ§
-		I2C1->SR1 &= ~(1 << 9); //Çå³ýÖÐ¶Ï
+	if (I2C1->SR1 & 1 << 9) { //ï¿½Ù²Ã¶ï¿½Ê§
+		I2C1->SR1 &= ~(1 << 9); //ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½
 	}
-	if (I2C1->SR1 & 1 << 8) { //×ÜÏß³ö´í
-		I2C1->SR1 &= ~(1 << 8); //Çå³ýÖÐ¶Ï
+	if (I2C1->SR1 & 1 << 8) { //ï¿½ï¿½ï¿½ß³ï¿½ï¿½ï¿½
+		I2C1->SR1 &= ~(1 << 8); //ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½
 	}
-	I2C1->CR1 &= CR1_ACK_Reset;		//¹Ø±Õ×Ô¶¯Ó¦´ð
-	I2C1->CR1 |= CR1_STOP_Set;		//·¢ËÍ½áÊøÊ±Ðò
+	I2C1->CR1 &= CR1_ACK_Reset;		//ï¿½Ø±ï¿½ï¿½Ô¶ï¿½Ó¦ï¿½ï¿½
+	I2C1->CR1 |= CR1_STOP_Set;		//ï¿½ï¿½ï¿½Í½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 	I2C1_Busy = 0;
 }

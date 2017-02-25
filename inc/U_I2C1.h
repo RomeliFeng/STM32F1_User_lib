@@ -1,7 +1,7 @@
 /*
  * U_I2C1.h
  *
- *  Created on: 2016Äê2ÔÂ7ÈÕ
+ *  Created on: 2016ï¿½ï¿½2ï¿½ï¿½7ï¿½ï¿½
  *      Author: Romeli
  *      Used Pin: 	|  PB6-I2C1_SCL	  |
  *          		|  PB7-I2C1_SDA   |
@@ -12,13 +12,17 @@
 
 #include "stm32f10x.h"
 
+#define I2CSpeed 400000
 #define SlaveAddress 0x44
 
-void I2C_GPIO_Init();
-
-class I2CClass {
+class U_I2C1Class {
 public:
-	void Init(uint32_t Speed);
+	U_I2C1Class() {
+		I2C_DeInit(I2C1);
+		GPIOInit();
+		I2CInit();
+		NVICInit();
+	}
 	void SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t data);
 	void SendAsync(uint8_t D_Add, uint8_t W_Add, uint8_t *dataBuf,
 			uint8_t size);
@@ -27,8 +31,11 @@ public:
 	void ReceiveSync(uint8_t D_Add, uint8_t R_Add, uint8_t *dataBuf,
 			uint8_t size);
 private:
+	void GPIOInit();
+	void I2CInit();
+	void NVICInit();
 	void ExitBusy();
 };
 
-extern I2CClass I2C;
+extern U_I2C1Class U_I2C1;
 #endif /* U_I2C1_H_ */
