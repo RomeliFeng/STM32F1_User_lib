@@ -1,7 +1,7 @@
 /*
  * U_USART1.cpp
  *
- *  Created on: 2016Äê1ÔÂ18ÈÕ
+ *  Created on: 2016ï¿½ï¿½1ï¿½ï¿½18ï¿½ï¿½
  *      Author: Romeli
  */
 #include "U_USART1.h"
@@ -13,49 +13,52 @@ SerialClass Serial;
 
 extern void Serial_Event();
 
-volatile static uint8_t USART1_TX_Buf[USART1_TX_Buf_Size];				//·¢ËÍ»º³åÇø
-volatile static uint16_t USART1_TX_SP = 0;				//·¢ËÍ»º³åÇøÖ¸Õë
+typedef struct _SendBuf_Typedef {
+	uint8_t data[USART1_TX_Buf_Size]; //data
+	uint16_t sp = 0; //data sp
+	bool busy = false; //busy flag
+} SendBuf_Typedef;
 
-volatile static uint8_t USART1_RX_Buf[USART1_RX_Buf_Size];				//½ÓÊÕ»º´æÇø
-volatile static uint16_t USART1_RX_SP = 0;				//½ÓÊÕ»º´æÇøÖ¸Õë
+typedef struct _ReceiveBuf_Typedef {
+	uint8_t data[USART1_RX_Buf_Size]; //data
+	uint16_t sp = 0; //data sp
+	uint16_t read_sp = 0; //read sp
+	bool frame = false; //new frame received flag
+} ReceiveBuf_Typedef;
 
-volatile static uint16_t USART1_Read_SP = 0;				//»º´æÇø¶ÁÈ¡Ö¸Õë
-volatile static uint8_t USART1_Read_Frame = 0;			//¶ÁÈ¡Ö¡±ê×¼
+volatile static SendBuf_Typedef Tx_Buf;
+volatile static ReceiveBuf_Typedef Rx_Buf;
 
 #ifdef USE_DMA
-volatile static uint8_t USART1_TX_Buf2[USART1_TX_Buf_Size];		//±¸ÓÃ·¢ËÍ»º³åÇø
-volatile static uint16_t USART1_TX_SP2 = 0;		//±¸ÓÃ·¢ËÍ»º³åÇøÖ¸Õë
-volatile static uint8_t USART1_TX_BUSY = 0;		//·¢ËÍDMAÆ÷Ã¦±êÖ¾
-volatile static uint8_t USART1_TX_CH = 1;//·¢ËÍ»º³åÆÚÍ¨µÀ		1:USART1_TX_Buf;2:USART1_TX_Buf2
-volatile static uint8_t USART1_TX_Buf_BUSY = 0;	//·¢ËÍ»º³åÇø1ÖĞ±êÖ¾
-volatile static uint8_t USART1_TX_Buf2_BUSY = 0;	//·¢ËÍ»º³åÇø2ÖĞ±êÖ¾
-volatile static uint8_t USART1_RX_DMA_Buf[USART1_RX_Frame_Size];	//DMA½ÓÊÕ»º´æÇø
+volatile static SendBuf_Typedef Tx_Buf2;
+volatile static bool DMA_Tx_Busy = false;
+volatile static uint8_t DMA_Tx_Ch = 1; //1:Tx_Buf.data;2:Tx_Buf2.data
+volatile static uint8_t DMA_Tx_Buf[USART1_RX_Buf_Size];
 #endif
 
 void SerialClass::begin(uint32_t BaudRate) {
-	/*¶¨Òå³õÊ¼»¯ÓÃ½á¹¹Ìå*/
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	/*¿ªÆôGPIOAºÍUSART1µÄÊ±ÖÓ*/
+	//å¼€å¯USART1å’ŒGPIOAæ—¶é’Ÿ
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1,
 			ENABLE);
 
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 
-	/*ÉèÖÃPA9Îª¸´ÓÃÍÆÍìÊä³ö*/
+	//è®¾ç½®PA9å¤ç”¨è¾“å‡ºæ¨¡å¼ï¼ˆTXï¼‰
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	/*ÉèÖÃPA10Îª¸¡¶¯ÊäÈë*/
+	//è®¾ç½®PA10æµ®ç©ºè¾“å…¥æ¨¡å¼ï¼ˆRXï¼‰
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	/*´®¿Ú³õÊ¼»¯£¬²¨ÌØÂÊ£º²ÎÊı1£»ÎŞ×Ô¶¯¿ØÖÆ£»Ë«Ïò£»Í£Ö¹Î»£º1Î»£»×Ö½Ú£º8£»*/
+	//é…ç½®USART1 å…¨åŒå·¥ åœæ­¢ä½1 æ— æ ¡éªŒ
 	USART_DeInit(USART1);
 	USART_InitStructure.USART_BaudRate = BaudRate;
 	USART_InitStructure.USART_HardwareFlowControl =
@@ -69,25 +72,15 @@ void SerialClass::begin(uint32_t BaudRate) {
 
 #ifdef USE_DMA
 	DMA_InitTypeDef DMA_InitStructure;
-	/*¿ªÆôDMA1µÄÊ±ÖÓ*/
+
+	//å¼€å¯DMAæ—¶é’Ÿ
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
-	/*DMA1 USART1 ·¢ËÍÖĞ¶Ï*/
-	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel4_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 4;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-	/*DMA1 USART1 ½ÓÊÕÖĞ¶Ï*/
-	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel5_IRQn;
-	NVIC_Init(&NVIC_InitStructure);
 
 	DMA_DeInit(DMA1_Channel4);
-	/*ÉèÖÃÍâÉèµØÖ·ºÍÄÚ´æµØÖ·*/
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) (&USART1->DR);
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) USART1_TX_Buf;
-	/*ÉèÖÃ´«Êä·½Ïò*/
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) Tx_Buf.data;//ä¸´æ—¶è®¾ç½®ï¼Œæ— æ•ˆ
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-	DMA_InitStructure.DMA_BufferSize = 10;
+	DMA_InitStructure.DMA_BufferSize = 10;//ä¸´æ—¶è®¾ç½®ï¼Œæ— æ•ˆ
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
@@ -98,14 +91,14 @@ void SerialClass::begin(uint32_t BaudRate) {
 
 	DMA_Init(DMA1_Channel4, &DMA_InitStructure);
 	DMA_ITConfig(DMA1_Channel4, DMA_IT_TC, ENABLE);
+	//å‘é€DMAä¸å¼€å¯
 //	DMA_Cmd(DMA1_Channel4, ENABLE);
 
 	DMA_DeInit(DMA1_Channel5);
-	/*ÉèÖÃÍâÉèµØÖ·ºÍÄÚ´æµØÖ·*/
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) (&USART1->DR);
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) USART1_RX_DMA_Buf;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) DMA_Tx_Buf;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-	DMA_InitStructure.DMA_BufferSize = USART1_RX_Frame_Size;
+	DMA_InitStructure.DMA_BufferSize = USART1_RX_Buf_Size;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
@@ -117,7 +110,17 @@ void SerialClass::begin(uint32_t BaudRate) {
 	DMA_Init(DMA1_Channel5, &DMA_InitStructure);
 	DMA_Cmd(DMA1_Channel5, ENABLE);
 
-	/*¿ªÆô´®¿ÚDMA·¢ËÍºÍ½ÓÊÕ*/
+	//é…ç½®DMAä¸­æ–­
+	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel4_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 4;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel5_IRQn;
+	NVIC_Init(&NVIC_InitStructure);
+
+	//ä¸²å£å‘é€æ¥æ”¶çš„DMAåŠŸèƒ½
 	USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
 	USART_DMACmd(USART1, USART_DMAReq_Rx, ENABLE);
 #endif
@@ -130,9 +133,11 @@ void SerialClass::begin(uint32_t BaudRate) {
 	NVIC_Init(&NVIC_InitStructure);
 
 #ifndef USE_DMA
-	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);		// Ê¹ÄÜ½ÓÊÕÖĞ¶Ï
+	//å¼€å¯ä¸²å£çš„å­—èŠ‚æ¥æ”¶ä¸­æ–­
+	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 #endif
-	USART_ITConfig(USART1, USART_IT_IDLE, ENABLE);		// Ê¹ÄÜÖ¡ÖĞ¶Ï
+	//å¼€å¯ä¸²å£çš„å¸§æ¥æ”¶ä¸­æ–­
+	USART_ITConfig(USART1, USART_IT_IDLE, ENABLE);
 
 	USART_Cmd(USART1, ENABLE);
 }
@@ -150,61 +155,82 @@ void SerialClass::print(double data, uint8_t ndigit) {
 
 void SerialClass::print(uint8_t *data, uint16_t len) {
 #ifdef USE_DMA
-	if (USART1_TX_BUSY) {				//ÅĞ¶ÏDMAÊÇ·ñÔÚÊ¹ÓÃÖĞ
-		switch (USART1_TX_CH) {			//ÅĞ¶ÏÕıÔÚÊ¹ÓÃµÄ»º³åÇø
+	//åˆ¤æ–­å½“å‰æ˜¯å¦æ­£åœ¨å‘é€
+	if (DMA_Tx_Busy) {
+		//æ ¹æ®æ­£åœ¨ä½¿ç”¨çš„ç¼“å†²åŒºè½¬æ¢åˆ°ç©ºé—²ç¼“å†²åŒº
+		switch (DMA_Tx_Ch) {
 		case 1:
-			SWCH_1: USART1_TX_Buf2_BUSY = 1;	//·ÀÖ¹·¢ËÍ»ìÂÒ
+			//ç¼“å†²åŒº1æ­£åœ¨ä½¿ç”¨ä¸­ï¼Œå¡«å……ç¼“å†²åŒº2
+			//ç½®ä½ç¼“å†²åŒº2å¿™æ ‡å¿—ï¼Œé˜²æ­¢å…¶ä»–ä¸­æ–­è¯¯ä¿®æ”¹
+			SWCH_1: Tx_Buf2.busy = true;
 			while (len--) {
-				USART1_TX_Buf2[USART1_TX_SP2++] = *data++;	//»º³åÇø1ÕıÔÚ·¢ËÍÖĞ£¬Ìî³ä»º³åÇø2
-				if (USART1_TX_SP2 == USART1_TX_Buf_Size) {
-					//»º³åÇøÒÑÂú
-					USART1_TX_Buf2_BUSY = 0;
-					if (!USART1_TX_BUSY) {	//ÅĞ¶ÏDMAÊÇ·ñ¿ÕÏĞ
-						DMASend(2);	//·¢ËÍ»º³åÇø2µÄÄÚÈİ
+				//é€å­—èŠ‚æ¬è¿æ•°æ®
+				Tx_Buf2.data[Tx_Buf2.sp++] = *data++;
+				//åˆ¤æ–­ç¼“å†²åŒº2æ˜¯å¦å·²æ»¡ï¼ˆéœ€è¦é¿å…æ­¤çŠ¶å†µï¼‰
+				if (Tx_Buf2.sp == USART1_TX_Buf_Size) {
+					//ç¼“å†²åŒº2å·²æ»¡ï¼Œå…³é—­ç¼“å†²åŒº2å¿™æ ‡å¿—
+					Tx_Buf2.busy = false;
+					//åˆ¤æ–­æ˜¯å¦æ­£åœ¨å‘é€
+					if (!DMA_Tx_Busy) {
+						//å‘é€é˜Ÿåˆ—ç©ºé—²ï¼Œå…ˆå°†æ»¡çš„ç¼“å†²åŒº2å‘é€å‡ºå»
+						DMASend(2);
 					} else {
-						//µÈ´ı»º³åÇø1·¢ËÍÍê³É
-						while (USART1_TX_CH != 2)
+						//å‘é€ä¸­ï¼Œç­‰å¾…å‘é€å®Œæˆ
+						while (DMA_Tx_Ch != 2)
 							;
 					}
+					//è·³è½¬åˆ°ç¼“å†²åŒº1ç»§ç»­å¡«å……
 					goto SWCH_2;
-					//¼ÌĞøÌî³ä»º³åÇø1
 				}
 			}
-			USART1_TX_Buf2_BUSY = 0;
-			if (!USART1_TX_BUSY) {	//ÅĞ¶ÏDMAÊÇ·ñ¿ÕÏĞ
-				DMASend(2);	//·¢ËÍ»º³åÇø2µÄÄÚÈİ
+			//ç¼“å†²åŒº2å¡«å……å®Œæˆï¼Œå…³é—­ç¼“å†²åŒº2å¿™æ ‡å¿—
+			Tx_Buf2.busy = false;
+			//å¦‚æœå‘é€å¿™æ ‡å¿—æœªç½®ä½ï¼Œç«‹å³å‘é€ç¼“å†²åŒº2çš„æ•°æ®
+			if (!DMA_Tx_Busy) {
+				//ä½¿ç”¨ç¼“å†²åŒº2å‘é€æ•°æ®
+				DMASend(2);
 			}
+			//è‹¥å‘é€é˜Ÿåˆ—å¿™ï¼Œå°†åœ¨å‘é€å®Œå½“å‰é˜Ÿåˆ—åè‡ªåŠ¨è½½å…¥
 			break;
 		case 2:
-			SWCH_2: USART1_TX_Buf_BUSY = 1;	//·ÀÖ¹·¢ËÍ»ìÂÒ
+			//ç¼“å†²åŒº2æ­£åœ¨ä½¿ç”¨ä¸­ï¼Œå¡«å……ç¼“å†²åŒº1
+			//ç½®ä½ç¼“å†²åŒº1å¿™æ ‡å¿—ï¼Œé˜²æ­¢å…¶ä»–ä¸­æ–­è¯¯ä¿®æ”¹
+			SWCH_2: Tx_Buf.busy = true;
 			while (len--) {
-				USART1_TX_Buf[USART1_TX_SP++] = *data++;
-				//»º³åÇø2ÕıÔÚ·¢ËÍÖĞ£¬Ìî³ä»º³åÇø1
-				if (USART1_TX_SP == USART1_TX_Buf_Size) {
-					//»º³åÇøÒÑÂú
-					USART1_TX_Buf_BUSY = 0;
-					if (!USART1_TX_BUSY) {	//ÅĞ¶ÏDMAÊÇ·ñ¿ÕÏĞ
-						DMASend(1);	//·¢ËÍ»º³åÇø2µÄÄÚÈİ
+				//é€å­—èŠ‚æ¬è¿æ•°æ®
+				Tx_Buf.data[Tx_Buf.sp++] = *data++;
+				//åˆ¤æ–­ç¼“å†²åŒº1æ˜¯å¦å·²æ»¡ï¼ˆéœ€è¦é¿å…æ­¤çŠ¶å†µï¼‰
+				if (Tx_Buf.sp == USART1_TX_Buf_Size) {
+					//ç¼“å†²åŒº1å·²æ»¡ï¼Œå…³é—­ç¼“å†²åŒº1å¿™æ ‡å¿—
+					Tx_Buf.busy = false;
+					//åˆ¤æ–­æ˜¯å¦æ­£åœ¨å‘é€
+					if (!DMA_Tx_Busy) {
+						//å‘é€é˜Ÿåˆ—ç©ºé—²ï¼Œå…ˆå°†æ»¡çš„ç¼“å†²åŒº1å‘é€å‡ºå»
+						DMASend(1);
 					} else {
-						//µÈ´ı»º³åÇø1·¢ËÍÍê³É
-						while (USART1_TX_CH != 1)
+						//å‘é€ä¸­ï¼Œç­‰å¾…å‘é€å®Œæˆ
+						while (DMA_Tx_Ch != 1)
 							;
 					}
+					//è·³è½¬åˆ°ç¼“å†²åŒº2ç»§ç»­å¡«å……
 					goto SWCH_1;
-					//¼ÌĞøÌî³ä»º³åÇø2
 				}
 			}
-			USART1_TX_Buf_BUSY = 0;
-			if (!USART1_TX_BUSY) {	//ÅĞ¶ÏDMAÊÇ·ñ¿ÕÏĞ
-				DMASend(1);	//·¢ËÍ»º³åÇø2µÄÄÚÈİ
+			//ç¼“å†²åŒº1å¡«å……å®Œæˆï¼Œå…³é—­ç¼“å†²åŒº2å¿™æ ‡å¿—
+			Tx_Buf.busy = false;
+			//å¦‚æœå‘é€å¿™æ ‡å¿—æœªç½®ä½ï¼Œç«‹å³å‘é€ç¼“å†²åŒº2çš„æ•°æ®
+			if (!DMA_Tx_Busy) {
+				DMASend(1);
 			}
+			//è‹¥å‘é€é˜Ÿåˆ—å¿™ï¼Œå°†åœ¨å‘é€å®Œå½“å‰é˜Ÿåˆ—åè‡ªåŠ¨è½½å…¥
 			break;
 		default:
 			break;
 		}
-	} else {		//DMA¿ÕÏĞÌî³ä»º³åÇø1²¢·¢ËÍ
+	} else {
+		//DMAç©ºé—²ï¼Œç›´æ¥ä½¿ç”¨ç¼“å†²åŒº1å‘é€æ•°æ®
 		while (len--) {
-			USART1_TX_Buf[USART1_TX_SP++] = *data++;
+			Tx_Buf.data[Tx_Buf.sp++] = *data++;
 		}
 		DMASend(1);
 	}
@@ -221,41 +247,43 @@ void SerialClass::DMASend(uint8_t ch) {
 	uint16_t TX_Len;
 	switch (ch) {
 	case 1:
-		TX_Buf_Add = USART1_TX_Buf;
-		TX_Len = USART1_TX_SP;
+		TX_Buf_Add = Tx_Buf.data;
+		TX_Len = Tx_Buf.sp;
 		break;
 	case 2:
-		TX_Buf_Add = USART1_TX_Buf2;
-		TX_Len = USART1_TX_SP2;
+		TX_Buf_Add = Tx_Buf2.data;
+		TX_Len = Tx_Buf2.sp;
 		break;
 	default:
-		TX_Buf_Add = USART1_TX_Buf;
-		TX_Len = USART1_TX_SP;
+		TX_Buf_Add = Tx_Buf.data;
+		TX_Len = Tx_Buf.sp;
 		break;
 	}
-	USART1_TX_CH = ch;
-	USART1_TX_BUSY = 1;
-	DMA1_Channel4->CMAR = (uint32_t) TX_Buf_Add;		//¸ü¸ÄDMAÍâÉèµØÖ·
-	DMA1_Channel4->CNDTR = TX_Len;				//´«Èë·¢ËÍ×Ö½Ú¸öÊı
+	DMA_Tx_Ch = ch;
+	DMA_Tx_Busy = true;
+	DMA1_Channel4->CMAR = (uint32_t) TX_Buf_Add;
+	DMA1_Channel4->CNDTR = TX_Len;
 	DMA_Cmd(DMA1_Channel4, ENABLE);
 }
 #endif
 
+//ä¸²å£å‘é€ä¸€ä¸ªå­—èŠ‚
 void SerialClass::write(uint8_t c) {
 #ifdef USE_DMA
 	print(&c, 1);
 #else
-	USART1->DR = (c & (uint16_t) 0x01FF);			//·¢ËÍÒ»¸ö×Ö½Ú²¢µÈ´ı·¢ËÍÍê³É
+	USART1->DR = (c & (uint16_t) 0x01FF);
 	while (!(USART1->SR & USART_FLAG_TXE))
 	;
 #endif
 }
 
+//è¯»å–ä¸€ä¸ªå­—èŠ‚æ•°æ®ï¼Œä¸ç§»åŠ¨æŒ‡é’ˆ
 uint8_t SerialClass::peek() {
-	if (USART1_Read_SP == USART1_RX_SP)
+	if (Rx_Buf.read_sp == Rx_Buf.sp)
 		return -1;
 	else
-		return USART1_RX_Buf[USART1_Read_SP];		//È¡³öÊı¾İ
+		return Rx_Buf.data[Rx_Buf.read_sp];
 }
 
 uint8_t SerialClass::peekNextDigit(bool detectDecimal) {
@@ -348,26 +376,29 @@ double SerialClass::nextFloat() {
 	return data;
 }
 
-/*·µ»ØÎ´¶ÁÈ¡×Ö½Ú¸öÊı*/
+//è®¡ç®—å¹¶è¿”å›ä¸²å£ç¼“å†²ä¸­å‰©ä½™æœªè¯»å­—èŠ‚
 uint16_t SerialClass::available() {
-	return USART1_RX_SP >= USART1_Read_SP ? USART1_RX_SP - USART1_Read_SP :
-	USART1_RX_Buf_Size - USART1_Read_SP + USART1_RX_SP;
+	return Rx_Buf.sp >= Rx_Buf.read_sp ? Rx_Buf.sp - Rx_Buf.read_sp :
+	USART1_RX_Buf_Size - Rx_Buf.read_sp + Rx_Buf.sp;
 }
-/*Ò»Ö¡Êı¾İ¼ì²â±êÖ¾*/
+
+//åˆ¤æ–­å¸§æ¥æ”¶æ ‡å¿—
 bool SerialClass::checkFrame() {
-	if (USART1_Read_Frame != 0) {
-		USART1_Read_Frame = 0;
+	if (Rx_Buf.frame != 0) {
+		Rx_Buf.frame = 0;
 		return true;
 	} else
 		return false;
 }
 
+//åˆ¤æ–­å‘é€å¿™æ ‡å¿—
 bool SerialClass::checkBusy() {
-	return USART1_TX_BUSY == 1 ? true : false;
+	return DMA_Tx_Busy;
 }
 
-void SerialClass::flush() {
-	USART1_Read_SP = USART1_RX_SP;
+//å°†è¯»å–æŒ‡é’ˆè®¾ç½®ä¸ºæ¥æ”¶ç¼“å†²æŒ‡é’ˆï¼Œä¸¢å¼ƒä¹‹å‰çš„æ•°æ®
+void SerialClass::clear() {
+	Rx_Buf.read_sp = Rx_Buf.sp;
 }
 
 uint16_t SerialClass::getlen(uint8_t* data) {
@@ -376,86 +407,110 @@ uint16_t SerialClass::getlen(uint8_t* data) {
 		len++;
 	return len;
 }
+
+//ä¸²å£è¯»å–æŒ‡é’ˆ+1
 inline void SerialClass::ReadSPInc() {
-	if (USART1_Read_SP != USART1_RX_SP)				//·ÀÖ¹¶ÁÈ¡Ô½½ç
-		++USART1_Read_SP;
-	if (USART1_Read_SP == USART1_RX_Buf_Size) {		//Ö¸Õë¹éÁã
-		USART1_Read_SP = 0;
+	if (Rx_Buf.read_sp != Rx_Buf.sp)
+		++Rx_Buf.read_sp;
+	if (Rx_Buf.read_sp == USART1_RX_Buf_Size) {
+		Rx_Buf.read_sp = 0;
 	}
 }
 
+//ä¸²å£è¯»å–æŒ‡é’ˆ-1
 inline void SerialClass::ReadSPDec() {
-	if (USART1_Read_SP == 0) {		//Ö¸Õë¹éÁã
-		USART1_Read_SP = USART1_RX_Buf_Size - 1;
+	if (Rx_Buf.read_sp == 0) {
+		Rx_Buf.read_sp = USART1_RX_Buf_Size - 1;
 	} else {
-		--USART1_Read_SP;
+		--Rx_Buf.read_sp;
 	}
 }
-/*´®¿Ú»º³åÇøµÄÖĞ¶Ï³ÌĞò*/
+
+//ä¸²å£æ¥æ”¶ä¸­æ–­
 extern "C" void USART1_IRQHandler(void) {
 	if (USART_GetITStatus(USART1, USART_IT_IDLE) != RESET) {
-		USART1_Read_Frame = 1;
+		Rx_Buf.frame = 1;
 		USART_ReceiveData(USART1);
 #ifdef USE_DMA
-		DMA_Cmd(DMA1_Channel5, DISABLE);			//½ÓÊÕµ½1Ö¡Êı¾İ£¬´ÓDMA±£´æµ½»º³åÇø
-		uint16_t len = USART1_RX_Frame_Size - DMA1_Channel5->CNDTR;
+		//å…³é—­DMAæ¥æ”¶
+		DMA_Cmd(DMA1_Channel5, DISABLE);
+		uint16_t len = USART1_RX_Buf_Size - DMA1_Channel5->CNDTR;
+		//æ¸…é™¤DMAæ ‡å¿—
 		DMA_ClearFlag(
 		DMA1_FLAG_GL5 | DMA1_FLAG_TC5 | DMA1_FLAG_TE5 | DMA1_FLAG_HT5);
-		DMA1_Channel5->CNDTR = USART1_RX_Frame_Size;//´Ë¼Ä´æÆ÷ Ö»ÄÜÔÚChannel disable×´Ì¬ÏÂĞŞ¸Ä
+		//å¤ä½DMAæ¥æ”¶åŒºå¤§å°
+		DMA1_Channel5->CNDTR = USART1_RX_Buf_Size;
+		//å¾ªç¯æ¬è¿æ•°æ®
 		for (uint16_t i = 0; i < len; ++i) {
-			USART1_RX_Buf[USART1_RX_SP++] = USART1_RX_DMA_Buf[i];
-			if (USART1_RX_SP == USART1_RX_Buf_Size) {
-				USART1_RX_SP = 0;
+			Rx_Buf.data[Rx_Buf.sp++] = DMA_Tx_Buf[i];
+			if (Rx_Buf.sp == USART1_RX_Buf_Size) {
+				Rx_Buf.sp = 0;
 			}
 		}
+		//å¼€å¯DMAæ¥æ”¶
 		DMA_Cmd(DMA1_Channel5, ENABLE);
 #endif
+		//ä¸²å£å¸§æ¥æ”¶äº‹ä»¶
 		Serial_Event();
 	}
 #ifndef USE_DMA
+	//ä¸²å£å­—èŠ‚æ¥æ”¶ä¸­æ–­ç½®ä½
 	if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
-		USART1_RX_Buf[USART1_RX_SP] = USART1->DR;
-		USART1_RX_SP++;
-		if (USART1_RX_SP == USART1_RX_Buf_Size)
-		USART1_RX_SP = 0;
+		//æ¬è¿æ•°æ®åˆ°ç¼“å†²åŒº
+		Rx_Buf.data[Rx_Buf.sp] = USART1->DR;
+		Rx_Buf.sp++;
+		if (Rx_Buf.sp == USART1_RX_Buf_Size)
+		Rx_Buf.sp = 0;
 	}
 #endif
+	//ä¸²å£å¸§é”™è¯¯ä¸­æ–­
 	if ((USART1->SR & USART_FLAG_ORE) != (uint16_t) RESET)
 		USART_ReceiveData(USART1);
 }
 
-extern "C" void DMA1_Channel4_IRQHandler(void) {
 #ifdef USE_DMA
+//DMAä¸²å£å‘é€å®Œæˆä¸­æ–­
+extern "C" void DMA1_Channel4_IRQHandler(void) {
 	DMA_Cmd(DMA1_Channel4, DISABLE);
 	DMA_ClearFlag(DMA1_FLAG_TC4);
-	switch (USART1_TX_CH) {			//²éÑ¯µ±Ç°Ê¹ÓÃµÄ»º³åÇø
+	//åˆ¤æ–­å½“å‰ä½¿ç”¨çš„ç¼“å†²é€šé“
+	switch (DMA_Tx_Ch) {
 	case 1:
-		USART1_TX_SP = 0;	//»º³åÇø1·¢ËÍÒÑÍê³É£¬Çå¿ÕÖ¸Õë
-		if (USART1_TX_SP2 != 0 && USART1_TX_Buf2_BUSY == 0) {//Èç¹û»º³åÇø2ÖĞÓĞÎ´·¢ËÍµÄÊı¾İ ²¢ÇÒ»º³åÇøÎ´ÔÚÌî³äÖĞ
-			USART1_TX_CH = 2;		//ÇĞ»»µ±Ç°·¢ËÍ»º³åÇøÑ¡Ôñ
-			DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf2;
-			DMA1_Channel4->CNDTR = USART1_TX_SP2;
+		//ç¼“å†²åŒº1å‘é€å®Œæˆï¼Œç½®ä½æŒ‡é’ˆ
+		Tx_Buf.sp = 0;
+		//åˆ¤æ–­ç¼“å†²åŒº2æ˜¯å¦æœ‰æ•°æ®ï¼Œå¹¶ä¸”å¿™æ ‡å¿—æœªç½®ä½ï¼ˆé˜²æ­¢å¡«å……åˆ°ä¸€åŠå‘é€å‡ºå»ï¼‰
+		if (Tx_Buf2.sp != 0 && Tx_Buf2.busy == false) {
+			//å½“å‰ä½¿ç”¨ç¼“å†²åŒºåˆ‡æ¢ä¸ºç¼“å†²åŒº2ï¼Œå¹¶åŠ è½½DMAå‘é€
+			DMA_Tx_Ch = 2;
+			DMA1_Channel4->CMAR = (uint32_t) Tx_Buf2.data;
+			DMA1_Channel4->CNDTR = Tx_Buf2.sp;
 			DMA_Cmd(DMA1_Channel4, ENABLE);
 		} else {
-			USART1_TX_BUSY = 0;	//ËùÓĞÊı¾İ·¢ËÍÍê±Ï£¬¹Ø±ÕÃ¦±êÖ¾
+			//æ— æ•°æ®éœ€è¦å‘é€ï¼Œæ¸…é™¤å‘é€é˜Ÿåˆ—å¿™æ ‡å¿—
+			DMA_Tx_Busy = false;
 		}
 		break;
 	case 2:
-		USART1_TX_SP2 = 0;	//»º³åÇø2·¢ËÍÒÑÍê³É£¬Çå¿ÕÖ¸Õë
-		if (USART1_TX_SP != 0 && USART1_TX_Buf2_BUSY == 0) {//Èç¹û»º³åÇø1ÖĞÓĞÎ´·¢ËÍµÄÊı¾İ ²¢ÇÒ»º³åÇøÎ´ÔÚÌî³äÖĞ
-			USART1_TX_CH = 1;	//ÇĞ»»µ±Ç°·¢ËÍ»º³åÇøÑ¡Ôñ
-			DMA1_Channel4->CMAR = (uint32_t) USART1_TX_Buf;
-			DMA1_Channel4->CNDTR = USART1_TX_SP;
+		//ç¼“å†²åŒº2å‘é€å®Œæˆï¼Œç½®ä½æŒ‡é’ˆ
+		Tx_Buf2.sp = 0;
+		//åˆ¤æ–­ç¼“å†²åŒº1æ˜¯å¦æœ‰æ•°æ®ï¼Œå¹¶ä¸”å¿™æ ‡å¿—æœªç½®ä½ï¼ˆé˜²æ­¢å¡«å……åˆ°ä¸€åŠå‘é€å‡ºå»ï¼‰
+		if (Tx_Buf.sp != 0 && Tx_Buf2.busy == false) {
+			//å½“å‰ä½¿ç”¨ç¼“å†²åŒºåˆ‡æ¢ä¸ºç¼“å†²åŒº1ï¼Œå¹¶åŠ è½½DMAå‘é€
+			DMA_Tx_Ch = 1;
+			DMA1_Channel4->CMAR = (uint32_t) Tx_Buf.data;
+			DMA1_Channel4->CNDTR = Tx_Buf.sp;
 			DMA_Cmd(DMA1_Channel4, ENABLE);
 		} else {
-			USART1_TX_BUSY = 0; //ËùÓĞÊı¾İ·¢ËÍÍê±Ï£¬¹Ø±ÕÃ¦±êÖ¾
+			//æ— æ•°æ®éœ€è¦å‘é€ï¼Œæ¸…é™¤å‘é€é˜Ÿåˆ—å¿™æ ‡å¿—
+			DMA_Tx_Busy = false;
 		}
 		break;
 	default:
 		break;
 	}
-#endif
 }
+
+#endif
 
 void __attribute__((weak)) Serial_Event() {
 

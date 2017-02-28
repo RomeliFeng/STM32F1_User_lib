@@ -14,9 +14,8 @@
 
 #define USE_DMA
 
-#define USART1_RX_Frame_Size 2080
 #define USART1_TX_Buf_Size 256
-#define USART1_RX_Buf_Size 2080
+#define USART1_RX_Buf_Size 256
 
 static uint8_t NewLine[] = { '\r', '\n' };
 
@@ -127,7 +126,7 @@ public:
 	uint8_t peekNextDigit(bool detectDecimal = false);
 	uint8_t read();
 	void read(uint8_t* buf, uint16_t len);
-	void flush();
+	void clear();
 private:
 	void DMASend(uint8_t ch);
 	uint16_t getlen(uint8_t* data);
