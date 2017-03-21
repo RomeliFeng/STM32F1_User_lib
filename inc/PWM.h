@@ -1,7 +1,7 @@
 /*
  * PWM.h
- *	ʹ��TIM2����PWM Ĭ��Ƶ��Ϊ17k ����Ϊ4096
- *  Created on: 2016��4��30��
+ *	ʹ��TIM2����PWM Ĭ��Ƶ��Ϊ17k ����Ϊ4096
+ *  Created on: 2016��4��30��
  *      Author: Romeli
  */
 
@@ -12,37 +12,37 @@
 
 #define OC1_EN
 #ifdef OC1_EN
-//OCģʽ����
-//#define OC1_MODE_PWM1 1
-#define OC1_MODE_TIMING 1
-//CC�Ƚ��ж�
+//模式选择
+#define OC1_MODE_PWM1 1
+//#define OC1_MODE_TIMING 1
+//中断开启选择
 #define IT_CC1_EN
 #endif
 
 #define OC2_EN
 #ifdef OC2_EN
-//OCģʽ����
+//模式选择
 #define OC2_MODE_PWM1 1
 //#define OC2_MODE_TIMING 1
-//CC�Ƚ��ж�
+//中断开启选择
 //#define IT_CC2_EN
 #endif
 
-#define OC3_EN
+//#define OC3_EN
 #ifdef OC3_EN
-//OCģʽ����
+//模式选择
 #define OC3_MODE_PWM1 1
 //#define OC3_MODE_TIMING 1
-//CC�Ƚ��ж�
+//中断开启选择
 //#define IT_CC3_EN
 #endif
 
 //#define OC4_EN
 #ifdef OC4_EN
-//OCģʽ����
+//模式选择
 #define OC4_MODE_PWM1 1
 //#define OC4_MODE_TIMING 1
-//CC�Ƚ��ж�
+//中断开启选择
 //#define IT_CC4_EN
 #endif
 
