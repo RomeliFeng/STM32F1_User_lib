@@ -1,7 +1,7 @@
 /*
  * U_USART1.cpp
  *
- *  Created on: 2016锟斤拷1锟斤拷18锟斤拷
+ *  Created on: 2016��1��18��
  *      Author: Romeli
  */
 #include "U_USART1.h"
@@ -36,51 +36,63 @@ volatile static uint8_t DMA_Tx_Ch = 1; //1:Tx_Buf.data;2:Tx_Buf2.data
 volatile static uint8_t DMA_Tx_Buf[USART1_RX_Buf_Size];
 #endif
 
-void SerialClass::begin(uint32_t BaudRate) {
+void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	//寮�鍚疷SART1鍜孏PIOA鏃堕挓
+	//开启USART1和GPIOA时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1,
 			ENABLE);
 
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 
-	//璁剧疆PA9澶嶇敤杈撳嚭妯″紡锛圱X锛�
+	//设置PA9复用输出模式（TX）
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	//璁剧疆PA10娴┖杈撳叆妯″紡锛圧X锛�
+	//设置PA10浮空输入模式（RX）
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	//閰嶇疆USART1 鍏ㄥ弻宸� 鍋滄浣�1 鏃犳牎楠�
+	//设置流控制引脚
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
+
+	//配置USART1 全双工 停止位1 无校验
 	USART_DeInit(USART1);
 	USART_InitStructure.USART_BaudRate = BaudRate;
 	USART_InitStructure.USART_HardwareFlowControl =
 	USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_Parity = USART_Parity;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	if (USART_Parity == USART_Parity_No) {
+		USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	} else {
+		USART_InitStructure.USART_WordLength = USART_WordLength_9b;
+	}
 
 	USART_Init(USART1, &USART_InitStructure);
 
 #ifdef USE_DMA
 	DMA_InitTypeDef DMA_InitStructure;
 
-	//寮�鍚疍MA鏃堕挓
+	//开启DMA时钟
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
 
 	DMA_DeInit(DMA1_Channel4);
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) (&USART1->DR);
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) Tx_Buf.data;//涓存椂璁剧疆锛屾棤鏁�
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) Tx_Buf.data; //临时设置，无效
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-	DMA_InitStructure.DMA_BufferSize = 10;//涓存椂璁剧疆锛屾棤鏁�
+	DMA_InitStructure.DMA_BufferSize = 10; //临时设置，无效
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
@@ -91,7 +103,7 @@ void SerialClass::begin(uint32_t BaudRate) {
 
 	DMA_Init(DMA1_Channel4, &DMA_InitStructure);
 	DMA_ITConfig(DMA1_Channel4, DMA_IT_TC, ENABLE);
-	//鍙戦�丏MA涓嶅紑鍚�
+	//发送DMA不开启
 //	DMA_Cmd(DMA1_Channel4, ENABLE);
 
 	DMA_DeInit(DMA1_Channel5);
@@ -110,7 +122,7 @@ void SerialClass::begin(uint32_t BaudRate) {
 	DMA_Init(DMA1_Channel5, &DMA_InitStructure);
 	DMA_Cmd(DMA1_Channel5, ENABLE);
 
-	//閰嶇疆DMA涓柇
+	//配置DMA中断
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel4_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 4;
@@ -120,7 +132,7 @@ void SerialClass::begin(uint32_t BaudRate) {
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel5_IRQn;
 	NVIC_Init(&NVIC_InitStructure);
 
-	//涓插彛鍙戦�佹帴鏀剁殑DMA鍔熻兘
+	//串口发送接收的DMA功能
 	USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
 	USART_DMACmd(USART1, USART_DMAReq_Rx, ENABLE);
 #endif
@@ -133,10 +145,10 @@ void SerialClass::begin(uint32_t BaudRate) {
 	NVIC_Init(&NVIC_InitStructure);
 
 #ifndef USE_DMA
-	//寮�鍚覆鍙ｇ殑瀛楄妭鎺ユ敹涓柇
+	//开启串口的字节接收中断
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 #endif
-	//寮�鍚覆鍙ｇ殑甯ф帴鏀朵腑鏂�
+	//开启串口的帧接收中断
 	USART_ITConfig(USART1, USART_IT_IDLE, ENABLE);
 
 	USART_Cmd(USART1, ENABLE);
@@ -155,80 +167,80 @@ void SerialClass::print(double data, uint8_t ndigit) {
 
 void SerialClass::print(uint8_t *data, uint16_t len) {
 #ifdef USE_DMA
-	//鍒ゆ柇褰撳墠鏄惁姝ｅ湪鍙戦��
+	//判断当前是否正在发送
 	if (DMA_Tx_Busy) {
-		//鏍规嵁姝ｅ湪浣跨敤鐨勭紦鍐插尯杞崲鍒扮┖闂茬紦鍐插尯
+		//根据正在使用的缓冲区转换到空闲缓冲区
 		switch (DMA_Tx_Ch) {
 		case 1:
-			//缂撳啿鍖�1姝ｅ湪浣跨敤涓紝濉厖缂撳啿鍖�2
-			//缃綅缂撳啿鍖�2蹇欐爣蹇楋紝闃叉鍏朵粬涓柇璇慨鏀�
+			//缓冲区1正在使用中，填充缓冲区2
+			//置位缓冲区2忙标志，防止其他中断误修改
 			SWCH_1: Tx_Buf2.busy = true;
 			while (len--) {
-				//閫愬瓧鑺傛惉杩愭暟鎹�
+				//逐字节搬运数据
 				Tx_Buf2.data[Tx_Buf2.sp++] = *data++;
-				//鍒ゆ柇缂撳啿鍖�2鏄惁宸叉弧锛堥渶瑕侀伩鍏嶆鐘跺喌锛�
+				//判断缓冲区2是否已满（需要避免此状况）
 				if (Tx_Buf2.sp == USART1_TX_Buf_Size) {
-					//缂撳啿鍖�2宸叉弧锛屽叧闂紦鍐插尯2蹇欐爣蹇�
+					//缓冲区2已满，关闭缓冲区2忙标志
 					Tx_Buf2.busy = false;
-					//鍒ゆ柇鏄惁姝ｅ湪鍙戦��
+					//判断是否正在发送
 					if (!DMA_Tx_Busy) {
-						//鍙戦�侀槦鍒楃┖闂诧紝鍏堝皢婊＄殑缂撳啿鍖�2鍙戦�佸嚭鍘�
+						//发送队列空闲，先将满的缓冲区2发送出去
 						DMASend(2);
 					} else {
-						//鍙戦�佷腑锛岀瓑寰呭彂閫佸畬鎴�
+						//发送中，等待发送完成
 						while (DMA_Tx_Ch != 2)
 							;
 					}
-					//璺宠浆鍒扮紦鍐插尯1缁х画濉厖
+					//跳转到缓冲区1继续填充
 					goto SWCH_2;
 				}
 			}
-			//缂撳啿鍖�2濉厖瀹屾垚锛屽叧闂紦鍐插尯2蹇欐爣蹇�
+			//缓冲区2填充完成，关闭缓冲区2忙标志
 			Tx_Buf2.busy = false;
-			//濡傛灉鍙戦�佸繖鏍囧織鏈疆浣嶏紝绔嬪嵆鍙戦�佺紦鍐插尯2鐨勬暟鎹�
+			//如果发送忙标志未置位，立即发送缓冲区2的数据
 			if (!DMA_Tx_Busy) {
-				//浣跨敤缂撳啿鍖�2鍙戦�佹暟鎹�
+				//使用缓冲区2发送数据
 				DMASend(2);
 			}
-			//鑻ュ彂閫侀槦鍒楀繖锛屽皢鍦ㄥ彂閫佸畬褰撳墠闃熷垪鍚庤嚜鍔ㄨ浇鍏�
+			//若发送队列忙，将在发送完当前队列后自动载入
 			break;
 		case 2:
-			//缂撳啿鍖�2姝ｅ湪浣跨敤涓紝濉厖缂撳啿鍖�1
-			//缃綅缂撳啿鍖�1蹇欐爣蹇楋紝闃叉鍏朵粬涓柇璇慨鏀�
+			//缓冲区2正在使用中，填充缓冲区1
+			//置位缓冲区1忙标志，防止其他中断误修改
 			SWCH_2: Tx_Buf.busy = true;
 			while (len--) {
-				//閫愬瓧鑺傛惉杩愭暟鎹�
+				//逐字节搬运数据
 				Tx_Buf.data[Tx_Buf.sp++] = *data++;
-				//鍒ゆ柇缂撳啿鍖�1鏄惁宸叉弧锛堥渶瑕侀伩鍏嶆鐘跺喌锛�
+				//判断缓冲区1是否已满（需要避免此状况）
 				if (Tx_Buf.sp == USART1_TX_Buf_Size) {
-					//缂撳啿鍖�1宸叉弧锛屽叧闂紦鍐插尯1蹇欐爣蹇�
+					//缓冲区1已满，关闭缓冲区1忙标志
 					Tx_Buf.busy = false;
-					//鍒ゆ柇鏄惁姝ｅ湪鍙戦��
+					//判断是否正在发送
 					if (!DMA_Tx_Busy) {
-						//鍙戦�侀槦鍒楃┖闂诧紝鍏堝皢婊＄殑缂撳啿鍖�1鍙戦�佸嚭鍘�
+						//发送队列空闲，先将满的缓冲区1发送出去
 						DMASend(1);
 					} else {
-						//鍙戦�佷腑锛岀瓑寰呭彂閫佸畬鎴�
+						//发送中，等待发送完成
 						while (DMA_Tx_Ch != 1)
 							;
 					}
-					//璺宠浆鍒扮紦鍐插尯2缁х画濉厖
+					//跳转到缓冲区2继续填充
 					goto SWCH_1;
 				}
 			}
-			//缂撳啿鍖�1濉厖瀹屾垚锛屽叧闂紦鍐插尯2蹇欐爣蹇�
+			//缓冲区1填充完成，关闭缓冲区2忙标志
 			Tx_Buf.busy = false;
-			//濡傛灉鍙戦�佸繖鏍囧織鏈疆浣嶏紝绔嬪嵆鍙戦�佺紦鍐插尯2鐨勬暟鎹�
+			//如果发送忙标志未置位，立即发送缓冲区2的数据
 			if (!DMA_Tx_Busy) {
 				DMASend(1);
 			}
-			//鑻ュ彂閫侀槦鍒楀繖锛屽皢鍦ㄥ彂閫佸畬褰撳墠闃熷垪鍚庤嚜鍔ㄨ浇鍏�
+			//若发送队列忙，将在发送完当前队列后自动载入
 			break;
 		default:
 			break;
 		}
 	} else {
-		//DMA绌洪棽锛岀洿鎺ヤ娇鐢ㄧ紦鍐插尯1鍙戦�佹暟鎹�
+		//DMA空闲，直接使用缓冲区1发送数据
 		while (len--) {
 			Tx_Buf.data[Tx_Buf.sp++] = *data++;
 		}
@@ -263,11 +275,15 @@ void SerialClass::DMASend(uint8_t ch) {
 	DMA_Tx_Busy = true;
 	DMA1_Channel4->CMAR = (uint32_t) TX_Buf_Add;
 	DMA1_Channel4->CNDTR = TX_Len;
+
+	//使能发送
+	GPIO_SetBits(GPIOA, GPIO_Pin_8);
+
 	DMA_Cmd(DMA1_Channel4, ENABLE);
 }
 #endif
 
-//涓插彛鍙戦�佷竴涓瓧鑺�
+//串口发送一个字节
 void SerialClass::write(uint8_t c) {
 #ifdef USE_DMA
 	print(&c, 1);
@@ -278,7 +294,7 @@ void SerialClass::write(uint8_t c) {
 #endif
 }
 
-//璇诲彇涓�涓瓧鑺傛暟鎹紝涓嶇Щ鍔ㄦ寚閽�
+//读取一个字节数据，不移动指针
 uint8_t SerialClass::peek() {
 	if (Rx_Buf.read_sp == Rx_Buf.sp)
 		return -1;
@@ -376,13 +392,13 @@ double SerialClass::nextFloat() {
 	return data;
 }
 
-//璁＄畻骞惰繑鍥炰覆鍙ｇ紦鍐蹭腑鍓╀綑鏈瀛楄妭
+//计算并返回串口缓冲中剩余未读字节
 uint16_t SerialClass::available() {
 	return Rx_Buf.sp >= Rx_Buf.read_sp ? Rx_Buf.sp - Rx_Buf.read_sp :
 	USART1_RX_Buf_Size - Rx_Buf.read_sp + Rx_Buf.sp;
 }
 
-//鍒ゆ柇甯ф帴鏀舵爣蹇�
+//判断帧接收标志
 bool SerialClass::checkFrame() {
 	if (Rx_Buf.frame != 0) {
 		Rx_Buf.frame = 0;
@@ -391,12 +407,12 @@ bool SerialClass::checkFrame() {
 		return false;
 }
 
-//鍒ゆ柇鍙戦�佸繖鏍囧織
+//判断发送忙标志
 bool SerialClass::checkBusy() {
 	return DMA_Tx_Busy;
 }
 
-//灏嗚鍙栨寚閽堣缃负鎺ユ敹缂撳啿鎸囬拡锛屼涪寮冧箣鍓嶇殑鏁版嵁
+//将读取指针设置为接收缓冲指针，丢弃之前的数据
 void SerialClass::clear() {
 	Rx_Buf.read_sp = Rx_Buf.sp;
 }
@@ -408,7 +424,7 @@ uint16_t SerialClass::getlen(uint8_t* data) {
 	return len;
 }
 
-//涓插彛璇诲彇鎸囬拡+1
+//串口读取指针+1
 inline void SerialClass::ReadSPInc() {
 	if (Rx_Buf.read_sp != Rx_Buf.sp)
 		++Rx_Buf.read_sp;
@@ -417,7 +433,7 @@ inline void SerialClass::ReadSPInc() {
 	}
 }
 
-//涓插彛璇诲彇鎸囬拡-1
+//串口读取指针-1
 inline void SerialClass::ReadSPDec() {
 	if (Rx_Buf.read_sp == 0) {
 		Rx_Buf.read_sp = USART1_RX_Buf_Size - 1;
@@ -426,83 +442,89 @@ inline void SerialClass::ReadSPDec() {
 	}
 }
 
-//涓插彛鎺ユ敹涓柇
+//串口接收中断
 extern "C" void USART1_IRQHandler(void) {
 	if (USART_GetITStatus(USART1, USART_IT_IDLE) != RESET) {
 		Rx_Buf.frame = 1;
 		USART_ReceiveData(USART1);
 #ifdef USE_DMA
-		//鍏抽棴DMA鎺ユ敹
+		//关闭DMA接收
 		DMA_Cmd(DMA1_Channel5, DISABLE);
 		uint16_t len = USART1_RX_Buf_Size - DMA1_Channel5->CNDTR;
-		//娓呴櫎DMA鏍囧織
+		//清除DMA标志
 		DMA_ClearFlag(
 		DMA1_FLAG_GL5 | DMA1_FLAG_TC5 | DMA1_FLAG_TE5 | DMA1_FLAG_HT5);
-		//澶嶄綅DMA鎺ユ敹鍖哄ぇ灏�
+		//复位DMA接收区大小
 		DMA1_Channel5->CNDTR = USART1_RX_Buf_Size;
-		//寰幆鎼繍鏁版嵁
+		//循环搬运数据
 		for (uint16_t i = 0; i < len; ++i) {
 			Rx_Buf.data[Rx_Buf.sp++] = DMA_Tx_Buf[i];
 			if (Rx_Buf.sp == USART1_RX_Buf_Size) {
 				Rx_Buf.sp = 0;
 			}
 		}
-		//寮�鍚疍MA鎺ユ敹
+		//开启DMA接收
 		DMA_Cmd(DMA1_Channel5, ENABLE);
 #endif
-		//涓插彛甯ф帴鏀朵簨浠�
+		//串口帧接收事件
 		Serial_Event();
 	}
 #ifndef USE_DMA
-	//涓插彛瀛楄妭鎺ユ敹涓柇缃綅
+	//串口字节接收中断置位
 	if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
-		//鎼繍鏁版嵁鍒扮紦鍐插尯
+		//搬运数据到缓冲区
 		Rx_Buf.data[Rx_Buf.sp] = USART1->DR;
 		Rx_Buf.sp++;
 		if (Rx_Buf.sp == USART1_RX_Buf_Size)
 		Rx_Buf.sp = 0;
 	}
 #endif
-	//涓插彛甯ч敊璇腑鏂�
+	//串口帧错误中断
 	if ((USART1->SR & USART_FLAG_ORE) != (uint16_t) RESET)
 		USART_ReceiveData(USART1);
 }
 
 #ifdef USE_DMA
-//DMA涓插彛鍙戦�佸畬鎴愪腑鏂�
+//DMA串口发送完成中断
 extern "C" void DMA1_Channel4_IRQHandler(void) {
 	DMA_Cmd(DMA1_Channel4, DISABLE);
 	DMA_ClearFlag(DMA1_FLAG_TC4);
-	//鍒ゆ柇褰撳墠浣跨敤鐨勭紦鍐查�氶亾
+	//判断当前使用的缓冲通道
 	switch (DMA_Tx_Ch) {
 	case 1:
-		//缂撳啿鍖�1鍙戦�佸畬鎴愶紝缃綅鎸囬拡
+		//缓冲区1发送完成，置位指针
 		Tx_Buf.sp = 0;
-		//鍒ゆ柇缂撳啿鍖�2鏄惁鏈夋暟鎹紝骞朵笖蹇欐爣蹇楁湭缃綅锛堥槻姝㈠～鍏呭埌涓�鍗婂彂閫佸嚭鍘伙級
+		//判断缓冲区2是否有数据，并且忙标志未置位（防止填充到一半发送出去）
 		if (Tx_Buf2.sp != 0 && Tx_Buf2.busy == false) {
-			//褰撳墠浣跨敤缂撳啿鍖哄垏鎹负缂撳啿鍖�2锛屽苟鍔犺浇DMA鍙戦��
+			//当前使用缓冲区切换为缓冲区2，并加载DMA发送
 			DMA_Tx_Ch = 2;
 			DMA1_Channel4->CMAR = (uint32_t) Tx_Buf2.data;
 			DMA1_Channel4->CNDTR = Tx_Buf2.sp;
 			DMA_Cmd(DMA1_Channel4, ENABLE);
 		} else {
-			//鏃犳暟鎹渶瑕佸彂閫侊紝娓呴櫎鍙戦�侀槦鍒楀繖鏍囧織
+			//无数据需要发送，清除发送队列忙标志
 			DMA_Tx_Busy = false;
+			while (!(USART1->SR & USART_FLAG_TC))
+				;
+			GPIO_ResetBits(GPIOA, GPIO_Pin_8);
 		}
 		break;
 	case 2:
-		//缂撳啿鍖�2鍙戦�佸畬鎴愶紝缃綅鎸囬拡
+		//缓冲区2发送完成，置位指针
 		Tx_Buf2.sp = 0;
-		//鍒ゆ柇缂撳啿鍖�1鏄惁鏈夋暟鎹紝骞朵笖蹇欐爣蹇楁湭缃綅锛堥槻姝㈠～鍏呭埌涓�鍗婂彂閫佸嚭鍘伙級
+		//判断缓冲区1是否有数据，并且忙标志未置位（防止填充到一半发送出去）
 		if (Tx_Buf.sp != 0 && Tx_Buf2.busy == false) {
-			//褰撳墠浣跨敤缂撳啿鍖哄垏鎹负缂撳啿鍖�1锛屽苟鍔犺浇DMA鍙戦��
+			//当前使用缓冲区切换为缓冲区1，并加载DMA发送
 			DMA_Tx_Ch = 1;
 			DMA1_Channel4->CMAR = (uint32_t) Tx_Buf.data;
 			DMA1_Channel4->CNDTR = Tx_Buf.sp;
 			DMA_Cmd(DMA1_Channel4, ENABLE);
 		} else {
-			//鏃犳暟鎹渶瑕佸彂閫侊紝娓呴櫎鍙戦�侀槦鍒楀繖鏍囧織
+			//无数据需要发送，清除发送队列忙标志
 			DMA_Tx_Busy = false;
+			while (!(USART1->SR & USART_FLAG_TC))
+				;
+			GPIO_ResetBits(GPIOA, GPIO_Pin_8);
 		}
 		break;
 	default:

@@ -21,7 +21,7 @@ static uint8_t NewLine[] = { '\r', '\n' };
 
 class SerialClass: public Parse {
 public:
-	void begin(uint32_t);
+	void begin(uint32_t BaudRate, uint16_t USART_Parity);
 
 	void print(int32_t data, uint8_t base = 10);
 
