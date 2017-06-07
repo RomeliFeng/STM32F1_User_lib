@@ -11,6 +11,10 @@ U_ADC1Class U_ADC1;
 
 uint16_t U_ADC1Data = 0;
 
+void U_ADC1Class::Init() {
+	ADCInit();
+}
+
 void U_ADC1Class::RegularChannelConfig(uint8_t ADC_Channel,
 		uint8_t ADC_SampleTime) {
 	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime);
@@ -26,6 +30,17 @@ void U_ADC1Class::RefreshData() {
 void U_ADC1Class::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
 	RegularChannelConfig(ADC_Channel, ADC_SampleTime);
 	RefreshData();
+}
+
+void U_ADC1Class::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime,
+		uint8_t OverLevel) {
+	uint32_t sum = 0;
+	RegularChannelConfig(ADC_Channel, ADC_SampleTime);
+	for (uint16_t i = 0; i < (1 << OverLevel << OverLevel); ++i) {
+		RefreshData();
+		sum += U_ADC1Data;
+	}
+	U_ADC1Data = sum >> OverLevel;
 }
 
 void U_ADC1Class::ADCInit() {
