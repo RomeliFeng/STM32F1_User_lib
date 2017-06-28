@@ -409,7 +409,11 @@ bool SerialClass::checkFrame() {
 
 //判断发送忙标志
 bool SerialClass::checkBusy() {
+#ifdef USE_DMA
 	return DMA_Tx_Busy;
+#else
+	return true;
+#endif
 }
 
 //将读取指针设置为接收缓冲指针，丢弃之前的数据
