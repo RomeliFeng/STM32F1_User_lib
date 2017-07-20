@@ -33,7 +33,7 @@ volatile static ReceiveBuf_Typedef Rx_Buf;
 volatile static SendBuf_Typedef Tx_Buf2;
 volatile static bool DMA_Tx_Busy = false;
 volatile static uint8_t DMA_Tx_Ch = 1; //1:Tx_Buf.data;2:Tx_Buf2.data
-volatile static uint8_t DMA_Tx_Buf[USART1_RX_Buf_Size];
+volatile static uint8_t DMA_Rx_Buf[USART1_RX_Buf_Size];
 #endif
 
 void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
@@ -108,7 +108,7 @@ void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 
 	DMA_DeInit(DMA1_Channel5);
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) (&USART1->DR);
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) DMA_Tx_Buf;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) DMA_Rx_Buf;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
 	DMA_InitStructure.DMA_BufferSize = USART1_RX_Buf_Size;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -462,7 +462,7 @@ extern "C" void USART1_IRQHandler(void) {
 		DMA1_Channel5->CNDTR = USART1_RX_Buf_Size;
 		//循环搬运数据
 		for (uint16_t i = 0; i < len; ++i) {
-			Rx_Buf.data[Rx_Buf.sp++] = DMA_Tx_Buf[i];
+			Rx_Buf.data[Rx_Buf.sp++] = DMA_Rx_Buf[i];
 			if (Rx_Buf.sp == USART1_RX_Buf_Size) {
 				Rx_Buf.sp = 0;
 			}

@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <U_USART3.h>
 
-SerialClass Serial;
+U_USART3Class U_USART3;
 
-extern void Serial_Event();
+extern void U_USART3_Event();
 
 typedef struct _SendBuf_Typedef {
 	uint8_t data[USART3_TX_Buf_Size]; //data
@@ -32,10 +32,10 @@ volatile static SendBuf_Typedef Tx_Buf;
 volatile static SendBuf_Typedef Tx_Buf2;
 volatile static bool DMA_Tx_Busy = false;
 volatile static uint8_t DMA_Tx_Ch = 1; //1:Tx_Buf.data;2:Tx_Buf2.data
-volatile static uint8_t DMA_Tx_Buf[USART3_RX_Buf_Size];
+volatile static uint8_t DMA_Rx_Buf[USART3_RX_Buf_Size];
 #endif
 
-void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
+void U_USART3Class::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	//开启USART3时钟
@@ -68,9 +68,9 @@ void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 
 	DMA_DeInit(DMA1_Channel2);
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) (&USART3->DR);
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) Tx_Buf.data;//临时设置，无效
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) Tx_Buf.data; //临时设置，无效
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-	DMA_InitStructure.DMA_BufferSize = 10;//临时设置，无效
+	DMA_InitStructure.DMA_BufferSize = 10; //临时设置，无效
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
@@ -86,7 +86,7 @@ void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 
 	DMA_DeInit(DMA1_Channel3);
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) (&USART3->DR);
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) DMA_Tx_Buf;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) DMA_Rx_Buf;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
 	DMA_InitStructure.DMA_BufferSize = USART3_RX_Buf_Size;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -102,8 +102,8 @@ void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 
 	//配置DMA中断
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 4;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
@@ -131,24 +131,24 @@ void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 	USART_Cmd(USART3, ENABLE);
 }
 
-void SerialClass::print(long data, uint8_t base) {
+void U_USART3Class::print(long data, uint8_t base) {
 	uint8_t str[20];
 	uint8_t len = byNumber(data, base, str);
 	print(str, len);
 }
-void SerialClass::print(double data, uint8_t ndigit) {
+void U_USART3Class::print(double data, uint8_t ndigit) {
 	uint8_t str[20];
 	uint8_t len = byFloat(data, ndigit, str);
 	print(str, len);
 }
 
-void SerialClass::print(uint8_t *data, uint16_t len) {
+void U_USART3Class::print(uint8_t *data, uint16_t len) {
 #ifdef USE_DMA
 	//判断当前是否正在发送
 	if (DMA_Tx_Busy) {
 		//根据正在使用的缓冲区转换到空闲缓冲区
 		switch (DMA_Tx_Ch) {
-			case 1:
+		case 1:
 			//缓冲区1正在使用中，填充缓冲区2
 			//置位缓冲区2忙标志，防止其他中断误修改
 			SWCH_1: Tx_Buf2.busy = true;
@@ -166,7 +166,7 @@ void SerialClass::print(uint8_t *data, uint16_t len) {
 					} else {
 						//发送中，等待发送完成
 						while (DMA_Tx_Ch != 2)
-						;
+							;
 					}
 					//跳转到缓冲区1继续填充
 					goto SWCH_2;
@@ -181,7 +181,7 @@ void SerialClass::print(uint8_t *data, uint16_t len) {
 			}
 			//若发送队列忙，将在发送完当前队列后自动载入
 			break;
-			case 2:
+		case 2:
 			//缓冲区2正在使用中，填充缓冲区1
 			//置位缓冲区1忙标志，防止其他中断误修改
 			SWCH_2: Tx_Buf.busy = true;
@@ -199,7 +199,7 @@ void SerialClass::print(uint8_t *data, uint16_t len) {
 					} else {
 						//发送中，等待发送完成
 						while (DMA_Tx_Ch != 1)
-						;
+							;
 					}
 					//跳转到缓冲区2继续填充
 					goto SWCH_1;
@@ -213,7 +213,7 @@ void SerialClass::print(uint8_t *data, uint16_t len) {
 			}
 			//若发送队列忙，将在发送完当前队列后自动载入
 			break;
-			default:
+		default:
 			break;
 		}
 	} else {
@@ -231,19 +231,19 @@ void SerialClass::print(uint8_t *data, uint16_t len) {
 }
 
 #ifdef USE_DMA
-void SerialClass::DMASend(uint8_t ch) {
+void U_USART3Class::DMASend(uint8_t ch) {
 	volatile uint8_t *TX_Buf_Add;
 	uint16_t TX_Len;
 	switch (ch) {
-		case 1:
+	case 1:
 		TX_Buf_Add = Tx_Buf.data;
 		TX_Len = Tx_Buf.sp;
 		break;
-		case 2:
+	case 2:
 		TX_Buf_Add = Tx_Buf2.data;
 		TX_Len = Tx_Buf2.sp;
 		break;
-		default:
+	default:
 		TX_Buf_Add = Tx_Buf.data;
 		TX_Len = Tx_Buf.sp;
 		break;
@@ -254,32 +254,32 @@ void SerialClass::DMASend(uint8_t ch) {
 	DMA1_Channel2->CNDTR = TX_Len;
 
 	//使能发送
-//	GPIO_SetBits(GPIOA, GPIO_Pin_8);
+	GPIO_SetBits(GPIOC, GPIO_Pin_12);
 
 	DMA_Cmd(DMA1_Channel2, ENABLE);
 }
 #endif
 
 //串口发送一个字节
-void SerialClass::write(uint8_t c) {
+void U_USART3Class::write(uint8_t c) {
 #ifdef USE_DMA
 	print(&c, 1);
 #else
 	USART3->DR = (c & (uint16_t) 0x01FF);
 	while (!(USART3->SR & USART_FLAG_TXE))
-		;
+	;
 #endif
 }
 
 //读取一个字节数据，不移动指针
-uint8_t SerialClass::peek() {
+uint8_t U_USART3Class::peek() {
 	if (Rx_Buf.read_sp == Rx_Buf.sp)
 		return -1;
 	else
 		return Rx_Buf.data[Rx_Buf.read_sp];
 }
 
-uint8_t SerialClass::peekNextDigit(bool detectDecimal) {
+uint8_t U_USART3Class::peekNextDigit(bool detectDecimal) {
 	char data = peek();
 	if (data == '-') {
 		ReadSPInc();
@@ -294,19 +294,19 @@ uint8_t SerialClass::peekNextDigit(bool detectDecimal) {
 		return -1;
 }
 
-uint8_t SerialClass::read() {
+uint8_t U_USART3Class::read() {
 	uint8_t data = peek();
 	ReadSPInc();
 	return data;
 }
 
-void SerialClass::read(uint8_t *buf, uint16_t len) {
+void U_USART3Class::read(uint8_t *buf, uint16_t len) {
 	while (len--) {
 		*buf++ = read();
 	}
 }
 
-long SerialClass::nextInt() {
+long U_USART3Class::nextInt() {
 	long data = 0;
 	bool isNeg = false;
 	char c;
@@ -330,7 +330,7 @@ long SerialClass::nextInt() {
 	return isNeg ? -data : data;
 }
 
-double SerialClass::nextFloat() {
+double U_USART3Class::nextFloat() {
 	double data = 0.0;
 	double frac = 1.0;
 	bool isNeg = false;
@@ -370,13 +370,13 @@ double SerialClass::nextFloat() {
 }
 
 //计算并返回串口缓冲中剩余未读字节
-uint16_t SerialClass::available() {
+uint16_t U_USART3Class::available() {
 	return Rx_Buf.sp >= Rx_Buf.read_sp ? Rx_Buf.sp - Rx_Buf.read_sp :
 	USART3_RX_Buf_Size - Rx_Buf.read_sp + Rx_Buf.sp;
 }
 
 //判断帧接收标志
-bool SerialClass::checkFrame() {
+bool U_USART3Class::checkFrame() {
 	if (Rx_Buf.frame != 0) {
 		Rx_Buf.frame = 0;
 		return true;
@@ -385,7 +385,7 @@ bool SerialClass::checkFrame() {
 }
 
 //判断发送忙标志
-bool SerialClass::checkBusy() {
+bool U_USART3Class::checkBusy() {
 #ifdef USE_DMA
 	return DMA_Tx_Busy;
 #else
@@ -394,11 +394,11 @@ bool SerialClass::checkBusy() {
 }
 
 //将读取指针设置为接收缓冲指针，丢弃之前的数据
-void SerialClass::clear() {
+void U_USART3Class::clear() {
 	Rx_Buf.read_sp = Rx_Buf.sp;
 }
 
-uint16_t SerialClass::getlen(uint8_t* data) {
+uint16_t U_USART3Class::getlen(uint8_t* data) {
 	uint16_t len = 0;
 	while (*data++ != '\0')
 		len++;
@@ -406,7 +406,7 @@ uint16_t SerialClass::getlen(uint8_t* data) {
 }
 
 //串口读取指针+1
-inline void SerialClass::ReadSPInc() {
+inline void U_USART3Class::ReadSPInc() {
 	if (Rx_Buf.read_sp != Rx_Buf.sp)
 		++Rx_Buf.read_sp;
 	if (Rx_Buf.read_sp == USART3_RX_Buf_Size) {
@@ -415,7 +415,7 @@ inline void SerialClass::ReadSPInc() {
 }
 
 //串口读取指针-1
-inline void SerialClass::ReadSPDec() {
+inline void U_USART3Class::ReadSPDec() {
 	if (Rx_Buf.read_sp == 0) {
 		Rx_Buf.read_sp = USART3_RX_Buf_Size - 1;
 	} else {
@@ -434,12 +434,12 @@ extern "C" void USART3_IRQHandler(void) {
 		uint16_t len = USART3_RX_Buf_Size - DMA1_Channel3->CNDTR;
 		//清除DMA标志
 		DMA_ClearFlag(
-				DMA1_FLAG_GL3 | DMA1_FLAG_TC3 | DMA1_FLAG_TE3 | DMA1_FLAG_HT3);
+		DMA1_FLAG_GL3 | DMA1_FLAG_TC3 | DMA1_FLAG_TE3 | DMA1_FLAG_HT3);
 		//复位DMA接收区大小
 		DMA1_Channel3->CNDTR = USART3_RX_Buf_Size;
 		//循环搬运数据
 		for (uint16_t i = 0; i < len; ++i) {
-			Rx_Buf.data[Rx_Buf.sp++] = DMA_Tx_Buf[i];
+			Rx_Buf.data[Rx_Buf.sp++] = DMA_Rx_Buf[i];
 			if (Rx_Buf.sp == USART3_RX_Buf_Size) {
 				Rx_Buf.sp = 0;
 			}
@@ -448,7 +448,7 @@ extern "C" void USART3_IRQHandler(void) {
 		DMA_Cmd(DMA1_Channel3, ENABLE);
 #endif
 		//串口帧接收事件
-		Serial_Event();
+		U_USART3_Event();
 	}
 #ifndef USE_DMA
 	//串口字节接收中断置位
@@ -457,7 +457,7 @@ extern "C" void USART3_IRQHandler(void) {
 		Rx_Buf.data[Rx_Buf.sp] = USART3->DR;
 		Rx_Buf.sp++;
 		if (Rx_Buf.sp == USART3_RX_Buf_Size)
-			Rx_Buf.sp = 0;
+		Rx_Buf.sp = 0;
 	}
 #endif
 	//串口帧错误中断
@@ -472,7 +472,7 @@ extern "C" void DMA1_Channel2_IRQHandler(void) {
 	DMA_ClearFlag(DMA1_FLAG_TC2);
 	//判断当前使用的缓冲通道
 	switch (DMA_Tx_Ch) {
-		case 1:
+	case 1:
 		//缓冲区1发送完成，置位指针
 		Tx_Buf.sp = 0;
 		//判断缓冲区2是否有数据，并且忙标志未置位（防止填充到一半发送出去）
@@ -486,11 +486,11 @@ extern "C" void DMA1_Channel2_IRQHandler(void) {
 			//无数据需要发送，清除发送队列忙标志
 			DMA_Tx_Busy = false;
 			while (!(USART3->SR & USART_FLAG_TC))
-			;
-//			GPIO_ResetBits(GPIOA, GPIO_Pin_8);
+				;
+			GPIO_ResetBits(GPIOC, GPIO_Pin_12);
 		}
 		break;
-		case 2:
+	case 2:
 		//缓冲区2发送完成，置位指针
 		Tx_Buf2.sp = 0;
 		//判断缓冲区1是否有数据，并且忙标志未置位（防止填充到一半发送出去）
@@ -504,22 +504,22 @@ extern "C" void DMA1_Channel2_IRQHandler(void) {
 			//无数据需要发送，清除发送队列忙标志
 			DMA_Tx_Busy = false;
 			while (!(USART3->SR & USART_FLAG_TC))
-			;
-//			GPIO_ResetBits(GPIOA, GPIO_Pin_8);
+				;
+			GPIO_ResetBits(GPIOC, GPIO_Pin_12);
 		}
 		break;
-		default:
+	default:
 		break;
 	}
 }
 
 #endif
 
-void __attribute__((weak)) Serial_Event() {
+void __attribute__((weak)) U_USART3_Event() {
 
 }
 
-void __attribute__((weak)) SerialClass::GPIOInit() {
+void __attribute__((weak)) U_USART3Class::GPIOInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	//开启GPIOC时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC | RCC_APB2Periph_AFIO, ENABLE);

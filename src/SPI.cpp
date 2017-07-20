@@ -1,7 +1,7 @@
 /*
  * SPI.cpp
  *
- *  Created on: 2016Äê5ÔÂ21ÈÕ
+ *  Created on: 2016ï¿½ï¿½5ï¿½ï¿½21ï¿½ï¿½
  *      Author: Romeli
  */
 #include "SPI.h"
@@ -47,17 +47,17 @@ void SPIClass::Init() {
 
 	SPI_GPIO_Init();
 
-	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex; //Ë«ÏßË«ÏòÈ«Ë«¹¤
-	SPI_InitStructure.SPI_Mode = SPI_Mode_Master; //ÉèÖÃÎªÖ÷SPI
-	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b; //8Î»Ö¡½á¹¹
-	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low; //Ê±ÖÓÐü¿Õ¸ß
-	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge; //µÚ¶þ¸öÊ±ÖÓÑØ
-	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft; //ÄÚ²¿NSSÐÅºÅÓÉSSIÎ»¿ØÖÆ
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_Speed; //Ô¤·ÖÆµÖµÎª2
-	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB; //Êý¾Ý´«Êä´ÓMSBÎ»¿ªÊ¼
-	SPI_InitStructure.SPI_CRCPolynomial = 7; //ÓÃÓÚCRCÖµ¼ÆËãµÄ¶àÏîÊ½
+	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex; //Ë«ï¿½ï¿½Ë«ï¿½ï¿½È«Ë«ï¿½ï¿½
+	SPI_InitStructure.SPI_Mode = SPI_Mode_Master; //ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½SPI
+	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b; //8Î»Ö¡ï¿½á¹¹
+	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low; //Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Õ¸ï¿½
+	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge; //ï¿½Ú¶ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½
+	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft; //ï¿½Ú²ï¿½NSSï¿½Åºï¿½ï¿½ï¿½SSIÎ»ï¿½ï¿½ï¿½ï¿½
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_Speed; //Ô¤ï¿½ï¿½ÆµÖµÎª2
+	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB; //ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½ï¿½MSBÎ»ï¿½ï¿½Ê¼
+	SPI_InitStructure.SPI_CRCPolynomial = 7; //ï¿½ï¿½ï¿½ï¿½CRCÖµï¿½ï¿½ï¿½ï¿½Ä¶ï¿½ï¿½ï¿½Ê½
 
-	SPI_Init(SPI_CH, &SPI_InitStructure); //³õÊ¼»¯ÅäÖÃ
+	SPI_Init(SPI_CH, &SPI_InitStructure); //ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	SPI_Cmd(SPI_CH, ENABLE);
 
 }
@@ -65,7 +65,6 @@ void SPIClass::Init() {
 uint8_t SPIClass::transfer(uint8_t data) {
 	SPI_I2S_SendData(SPI_CH, data);
 	while (SPI_I2S_GetFlagStatus(SPI_CH, SPI_I2S_FLAG_RXNE) == RESET)
-		//µÈ´ýÊ±ÖÓ½áÊø£¬ÒÔ±ã½ÓÊÕÊý¾Ý
 		;
 	return SPI_I2S_ReceiveData(SPI_CH);
 }

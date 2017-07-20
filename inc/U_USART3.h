@@ -14,12 +14,12 @@
 
 #define USE_DMA
 
-#define USART3_TX_Buf_Size 256
+#define USART3_TX_Buf_Size 4096
 #define USART3_RX_Buf_Size 256
 
 static uint8_t NewLine[] = { '\r', '\n' };
 
-class SerialClass: public Parse {
+class U_USART3Class: public Parse {
 public:
 	void begin(uint32_t BaudRate, uint16_t USART_Parity = USART_Parity_No);
 
@@ -136,5 +136,5 @@ private:
 	void GPIOInit();
 };
 
-extern SerialClass Serial;
+extern U_USART3Class U_USART3;
 #endif /* U_USART1_H_ */

@@ -227,28 +227,28 @@ void PWMClass::SwitchInterrupt(PWMCh_Typedef ch, FunctionalState NewState) {
 	}
 }
 
-extern "C" void TIM2_IRQHandler(void) {
-	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
-		U_TIM2_UPADATE_ISR();
-		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-	}
-	if (TIM_GetITStatus(TIM2, TIM_IT_CC1) != RESET) {
-		U_TIM2_CC1_ISR();
-		TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
-	}
-	if (TIM_GetITStatus(TIM2, TIM_IT_CC2) != RESET) {
-		U_TIM2_CC2_ISR();
-		TIM_ClearITPendingBit(TIM2, TIM_IT_CC2);
-	}
-	if (TIM_GetITStatus(TIM2, TIM_IT_CC3) != RESET) {
-		U_TIM2_CC3_ISR();
-		TIM_ClearITPendingBit(TIM2, TIM_IT_CC3);
-	}
-	if (TIM_GetITStatus(TIM2, TIM_IT_CC4) != RESET) {
-		U_TIM2_CC4_ISR();
-		TIM_ClearITPendingBit(TIM2, TIM_IT_CC4);
-	}
-}
+//extern "C" void TIM2_IRQHandler(void) {
+//	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
+//		U_TIM2_UPADATE_ISR();
+//		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+//	}
+//	if (TIM_GetITStatus(TIM2, TIM_IT_CC1) != RESET) {
+//		U_TIM2_CC1_ISR();
+//		TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
+//	}
+//	if (TIM_GetITStatus(TIM2, TIM_IT_CC2) != RESET) {
+//		U_TIM2_CC2_ISR();
+//		TIM_ClearITPendingBit(TIM2, TIM_IT_CC2);
+//	}
+//	if (TIM_GetITStatus(TIM2, TIM_IT_CC3) != RESET) {
+//		U_TIM2_CC3_ISR();
+//		TIM_ClearITPendingBit(TIM2, TIM_IT_CC3);
+//	}
+//	if (TIM_GetITStatus(TIM2, TIM_IT_CC4) != RESET) {
+//		U_TIM2_CC4_ISR();
+//		TIM_ClearITPendingBit(TIM2, TIM_IT_CC4);
+//	}
+//}
 //Default tim_it_cc handler
 void __attribute__((weak)) U_TIM2_CC1_ISR() {
 	return;
