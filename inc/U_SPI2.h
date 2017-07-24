@@ -36,6 +36,9 @@ public:
 
 	static void Init(uint16_t SPI2_Speed);
 	static void SendSync(uint8_t* data, uint16_t size);
+	static inline void SendSync(uint8_t data) {
+		SendSync(&data, 1);
+	}
 private:
 	static void GPIOInit();
 	static void SPIInit(uint16_t SPI2_Speed);

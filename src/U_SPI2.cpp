@@ -74,7 +74,7 @@ void U_SPI2::SPIInit(uint16_t SPI2_Speed) {
 	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
 	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
 	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
-	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
+	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
 	SPI_InitStructure.SPI_NSS = SPI_NSS_Hard;
 	SPI_InitStructure.SPI_BaudRatePrescaler = SPI2_Speed;
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
@@ -136,5 +136,7 @@ void U_SPI2::DMAInit() {
 extern "C" void DMA1_Channel5_IRQHandler(void) {
 	DMA_Cmd(DMA1_Channel5, DISABLE);
 	DMA_ClearFlag(DMA1_FLAG_TC5);
+	while (SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_TXE) == RESET)
+		;
 	U_SPI2::Busy = false;
 }
