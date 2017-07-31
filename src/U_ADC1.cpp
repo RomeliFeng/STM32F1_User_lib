@@ -7,43 +7,52 @@
 
 #include "U_ADC1.h"
 
-U_ADC1Class U_ADC1;
+WordtoByte_Typedef U_ADC1::Data = { 0 };
 
-uint16_t U_ADC1Data = 0;
-
-void U_ADC1Class::Init() {
+void U_ADC1::Init() {
+	GPIOInit();
 	ADCInit();
 }
 
-void U_ADC1Class::RegularChannelConfig(uint8_t ADC_Channel,
-		uint8_t ADC_SampleTime) {
+void U_ADC1::RegularChannelConfig(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
 	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime);
 }
 
-void U_ADC1Class::RefreshData() {
+void U_ADC1::RefreshData() {
 	ADC1->CR2 |= ((uint32_t) 0x00500000);
 	while ((ADC1->SR & ADC_FLAG_EOC) == (uint8_t) RESET)
 		;
-	U_ADC1Data = ADC1->DR;
+	Data.word = ADC1->DR;
 }
 
-void U_ADC1Class::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
+void U_ADC1::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
 	RegularChannelConfig(ADC_Channel, ADC_SampleTime);
 	RefreshData();
 }
 
-void U_ADC1Class::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime,
+void U_ADC1::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime,
 		uint8_t OverLevel) {
 	uint32_t sum = 0;
 	RegularChannelConfig(ADC_Channel, ADC_SampleTime);
 	for (uint16_t i = 0; i < (1 << OverLevel << OverLevel); ++i) {
 		RefreshData();
-		sum += U_ADC1Data;
+		sum += Data.word;
 	}
-	U_ADC1Data = sum >> OverLevel;
+	Data.word = sum >> OverLevel;
 }
 
-void U_ADC1Class::ADCInit() {
+void U_ADC1::GPIOInit() {
+	GPIO_InitTypeDef GPIO_InitStructure;
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+}
+
+void U_ADC1::ADCInit() {
 	ADC_InitTypeDef ADC_InitStructure;
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
@@ -57,7 +66,7 @@ void U_ADC1Class::ADCInit() {
 	ADC_Init(ADC1, &ADC_InitStructure);
 
 	RCC_ADCCLKConfig(RCC_PCLK2_Div8);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_1Cycles5);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_3, 1, ADC_SampleTime_239Cycles5);
 
 	ADC_Cmd(ADC1, ENABLE);
 

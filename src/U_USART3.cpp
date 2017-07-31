@@ -102,7 +102,7 @@ void U_USART3Class::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 
 	//配置DMA中断
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
@@ -117,7 +117,7 @@ void U_USART3Class::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 
 	NVIC_InitStructure.NVIC_IRQChannel = USART3_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 
 	NVIC_Init(&NVIC_InitStructure);
