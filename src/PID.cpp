@@ -17,7 +17,7 @@ void PIDClass::Compute() {
 	iTerm += PIDParam->ki * pError * dt;						//Compute iTerm
 	iTerm = iTerm > PIDParam->out_max ? PIDParam->out_max :		//Limit of iTerm
 			iTerm < PIDParam->out_min ? PIDParam->out_min : iTerm;
-	dTerm = PIDParam->kd * (PIDParam->now - Last) * dt;			//Compute DTerm
+	dTerm = PIDParam->kd * (PIDParam->now - Last) / dt;			//Compute DTerm
 	Last = PIDParam->now;									//Get last pError
 	if (Mode == PIDMode_Diff) {
 		PIDParam->out = PIDParam->kp * pError + iTerm - dTerm + PIDParam->out;
