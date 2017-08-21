@@ -13,37 +13,40 @@ typedef enum _PIDMode_Typedef {
 } PIDMode_Typedef;
 
 typedef struct _PIDParam_Typedef {
-	double kp;
-	double ki;
-	double kd;
-	double set;
-	double now;
-	double out;
-	double out_min;
-	double out_max;
+	float Input;
+	float Output;
+	float SetPoint;
 } PIDParam_Typedef;
+
+typedef enum _PIDDir_Typedef {
+	PIDDir_Postive, PIDDir_Negtive
+} PIDDir_Typedef;
 
 class PIDClass {
 public:
-	PIDClass(PIDParam_Typedef *pidParam, PIDMode_Typedef mode) {
-		PIDParam = pidParam;
-		Mode = mode;
-	}
-	void SetPIDParam(PIDParam_Typedef *pidParam) {
-		PIDParam = pidParam;
-	}
+	PIDClass(float kp, float ki, float kd, float interval, PIDDir_Typedef dir,
+			PIDParam_Typedef *pidParam, PIDMode_Typedef mode);
+	void SetTunings(float kp, float ki, float kd);
+	void SetInterval(float interval);
+	void SetLimits(float min, float max);
+	void SetDir(PIDDir_Typedef dir);
 	void Compute();
-	void Clear(){
-		iTerm = 0;
-	}
+	void Clear();
 
 private:
 	PIDParam_Typedef *PIDParam;
-	PIDMode_Typedef Mode = PIDMode_Diff;
-	double Last = 0;
-	double pError = 0;
-	double iTerm = 0;
-	double dTerm = 0;
+	PIDMode_Typedef Mode;
+	PIDDir_Typedef Dir;
+	float Kp;
+	float Ki;
+	float Kd;
+	float Last;
+	float pError;
+	float iTerm;
+	float dTerm;
+	float Min;
+	float Max;
+	float Interval;
 };
 
 #endif /* PID_H_ */

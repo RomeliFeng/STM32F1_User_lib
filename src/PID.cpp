@@ -8,24 +8,93 @@
 #include "PID.h"
 #include "Delay.h"
 
-void PIDClass::Compute() {
-	static uint64_t Lasttime = micros();
-	double dt = (double) (micros() - Lasttime) / 1000000.0;
-	Lasttime = micros();
+PIDClass::PIDClass(float kp, float ki, float kd, float interval,
+		PIDDir_Typedef dir, PIDParam_Typedef* pidParam, PIDMode_Typedef mode) {
+	PIDParam = pidParam;
+	Interval = interval;
+	Dir = dir;
+	SetTunings(kp, ki, kd);
+	Mode = mode;
+}
 
-	pError = PIDParam->set - PIDParam->now;			//Compute pError
-	iTerm += PIDParam->ki * pError * dt;						//Compute iTerm
-	iTerm = iTerm > PIDParam->out_max ? PIDParam->out_max :		//Limit of iTerm
-			iTerm < PIDParam->out_min ? PIDParam->out_min : iTerm;
-	dTerm = PIDParam->kd * (PIDParam->now - Last) / dt;			//Compute DTerm
-	Last = PIDParam->now;									//Get last pError
-	if (Mode == PIDMode_Diff) {
-		PIDParam->out = PIDParam->kp * pError + iTerm - dTerm + PIDParam->out;
-	} else {
-		PIDParam->out = PIDParam->kp * pError + iTerm - dTerm;
+void PIDClass::SetTunings(float kp, float ki, float kd) {
+	if (kp < 0 || ki < 0 || kd < 0) {
+		return;
 	}
-	PIDParam->out =
-			PIDParam->out > PIDParam->out_max ? PIDParam->out_max :	//Limit of Output_Inside
-			PIDParam->out < PIDParam->out_min ?
-					PIDParam->out_min : PIDParam->out;
+	Kp = kp;
+	Ki = ki * Interval;
+	Kd = kd / Interval;
+
+	if (Dir == PIDDir_Negtive) {
+		Kp = (0 - Kp);
+		Ki = (0 - Ki);
+		Kd = (0 - Kd);
+	}
+}
+
+void PIDClass::SetInterval(float interval) {
+	if (interval < 0) {
+		return;
+	}
+	float ratio = interval / Interval;
+	Ki *= ratio;
+	Kd /= ratio;
+	Interval = interval;
+}
+
+void PIDClass::SetLimits(float min, float max) {
+	if (max < min) {
+		return;
+	}
+	Min = min;
+	Max = max;
+	if (iTerm > Max) {
+		iTerm = Max;
+	} else if (iTerm < Min) {
+		iTerm = Min;
+	}
+	if (PIDParam->Output > Max) {
+		PIDParam->Output = Max;
+	} else if (PIDParam->Output < Min) {
+		PIDParam->Output = Min;
+	}
+}
+
+void PIDClass::SetDir(PIDDir_Typedef dir) {
+	if (Dir != dir) {
+		Kp = 0 - Kp;
+		Ki = 0 - Ki;
+		Kd = 0 - Kd;
+		Dir = dir;
+	}
+}
+
+void PIDClass::Compute() {
+	pError = PIDParam->SetPoint - PIDParam->Input;			//Compute pError
+
+	iTerm += Ki * pError;						//Compute iTerm
+	if (iTerm > Max) {	//Limit iTerm
+		iTerm = Max;
+	} else if (iTerm < Min) {
+		iTerm = Min;
+	}
+
+	Last = PIDParam->Input;									//Get last pError
+	if (Mode == PIDMode_Diff) {
+		PIDParam->Output = Kp * pError + iTerm - dTerm + PIDParam->Output;
+	} else {
+		PIDParam->Output = Kp * pError + iTerm - dTerm;
+	}
+
+	if (PIDParam->Output > Max) { //Limit Output
+		PIDParam->Output = Max;
+	} else if (PIDParam->Output < Min) {
+		PIDParam->Output = Min;
+	}
+	dTerm = Kd * (PIDParam->Input - Last);			//Compute DTerm
+}
+
+void PIDClass::Clear() {
+	PIDParam->Output = 0;
+	iTerm = 0;
 }
