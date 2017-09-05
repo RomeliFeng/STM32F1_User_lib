@@ -45,6 +45,20 @@ void U_SPI2::SendSync(uint8_t* data, uint16_t size) {
 #endif
 }
 
+void U_SPI2::ReceiveSync(uint8_t* data, uint16_t size) {
+	Busy = true;
+	for (uint16_t i = 0; i < size; ++i) {
+		TxBuf[i] = 0;
+	}
+	DMA1_Channel5->CMAR = (uint32_t) TxBuf;
+	DMA1_Channel5->CNDTR = size;
+	DMA1_Channel4->CMAR = (uint32_t) RxBuf;
+	DMA1_Channel4->CNDTR = size;
+	DMA_Cmd(DMA1_Channel5, ENABLE);
+	while (Busy)
+		;
+}
+
 void U_SPI2::GPIOInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -63,8 +77,8 @@ void U_SPI2::GPIOInit() {
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14; //SPI MISO
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12; //SPI NSS
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+//	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12; //SPI NSS
+//	GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
 
 void U_SPI2::SPIInit(uint16_t SPI2_Speed) {
@@ -75,7 +89,7 @@ void U_SPI2::SPIInit(uint16_t SPI2_Speed) {
 	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
 	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
 	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
-	SPI_InitStructure.SPI_NSS = SPI_NSS_Hard;
+	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
 	SPI_InitStructure.SPI_BaudRatePrescaler = SPI2_Speed;
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
 	SPI_InitStructure.SPI_CRCPolynomial = 7;
