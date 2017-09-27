@@ -53,7 +53,7 @@ void SerialClass::begin(uint32_t BaudRate, uint16_t USART_Parity) {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	//设置PA10浮空输入模式（RX）
+	//设置PA10上拉输入模式（RX）
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
