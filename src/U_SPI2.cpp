@@ -48,7 +48,7 @@ void U_SPI2::SendSync(uint8_t* data, uint16_t size) {
 void U_SPI2::ReceiveSync(uint8_t* data, uint16_t size) {
 	Busy = true;
 	for (uint16_t i = 0; i < size; ++i) {
-		TxBuf[i] = 0;
+		TxBuf[i] = 0xff;
 	}
 	DMA1_Channel5->CMAR = (uint32_t) TxBuf;
 	DMA1_Channel5->CNDTR = size;

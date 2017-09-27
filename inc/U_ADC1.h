@@ -18,9 +18,9 @@ public:
 
 	static void Init();
 	static void RegularChannelConfig(uint8_t ADC_Channel, uint8_t ADC_SampleTime);
-	static void RefreshData();
-	static void RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime);
-	static void RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime,
+	static uint16_t RefreshData();
+	static uint16_t RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime);
+	static uint16_t RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime,
 			uint8_t OverLevel);
 private:
 	static void GPIOInit();

@@ -18,19 +18,19 @@ void U_ADC1::RegularChannelConfig(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
 	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime);
 }
 
-void U_ADC1::RefreshData() {
+uint16_t U_ADC1::RefreshData() {
 	ADC1->CR2 |= ((uint32_t) 0x00500000);
 	while ((ADC1->SR & ADC_FLAG_EOC) == (uint8_t) RESET)
 		;
-	Data.word = ADC1->DR;
+	return Data.word = ADC1->DR;
 }
 
-void U_ADC1::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
+uint16_t U_ADC1::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime) {
 	RegularChannelConfig(ADC_Channel, ADC_SampleTime);
-	RefreshData();
+	return RefreshData();
 }
 
-void U_ADC1::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime,
+uint16_t U_ADC1::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime,
 		uint8_t OverLevel) {
 	uint32_t sum = 0;
 	RegularChannelConfig(ADC_Channel, ADC_SampleTime);
@@ -38,7 +38,7 @@ void U_ADC1::RefreshData(uint8_t ADC_Channel, uint8_t ADC_SampleTime,
 		RefreshData();
 		sum += Data.word;
 	}
-	Data.word = sum >> OverLevel;
+	return Data.word = sum >> OverLevel;
 }
 
 void U_ADC1::GPIOInit() {
