@@ -58,7 +58,7 @@ void U_I2C2::SendAsync(uint8_t dAdd, uint8_t wAdd, uint8_t* dataBuf,
 	I2C2_Tx_Size = size + 1;
 	I2C2_Tx_Buf[0] = wAdd;
 
-	for (uint8_t i = 0; i < size; ++i) {
+	for (i = 0; i < size; ++i) {
 		I2C2_Tx_Buf[i + 1] = *(dataBuf + i);
 	}
 
@@ -89,7 +89,7 @@ void U_I2C2::SendAsync(uint8_t dAdd, uint8_t wAddH, uint8_t wAddL,
 	I2C2_Tx_Buf[0] = wAddH;
 	I2C2_Tx_Buf[1] = wAddL;
 
-	for (uint8_t i = 0; i < size; ++i) {
+	for (i = 0; i < size; ++i) {
 		I2C2_Tx_Buf[i + 2] = *(dataBuf + i);
 	}
 

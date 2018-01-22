@@ -8,6 +8,7 @@
 #ifndef U_ADC1_H_
 #define U_ADC1_H_
 
+#include "U_Misc.h"
 #include "cmsis_device.h"
 
 #define U_ADC_Max 4095
