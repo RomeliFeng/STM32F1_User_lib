@@ -178,7 +178,7 @@ void PWMClass::TIMInit(uint16_t Period, uint16_t Duty) {
 	//ʹ��TIM2���ؼĴ���
 	TIM_ARRPreloadConfig(TIM2, ENABLE);
 	//ʹ�ܶ�ʱ��2
-	TIM_Cmd(TIM2, ENABLE);
+	TIM_Cmd(TIM2, ENABLE);0
 }
 
 void PWMClass::SetPrescaler(uint16_t pre) {

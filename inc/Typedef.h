@@ -51,4 +51,9 @@ typedef union _DoubletoByte_Typedef{
 	uint8_t byte[8];
 } DoubletoByte_Typedef;
 
+typedef enum _Status_Typedef{
+	Status_Ok,
+	Status_Error
+}Status_Typedef;
+
 #endif /* TYPEDEF_H_ */

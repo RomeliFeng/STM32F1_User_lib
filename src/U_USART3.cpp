@@ -254,7 +254,7 @@ void U_USART3Class::DMASend(uint8_t ch) {
 	DMA1_Channel2->CNDTR = TX_Len;
 
 	//使能发送
-	GPIO_SetBits(GPIOC, GPIO_Pin_12);
+	GPIOC->BSRR = GPIO_Pin_12;
 
 	DMA_Cmd(DMA1_Channel2, ENABLE);
 }
@@ -487,7 +487,7 @@ extern "C" void DMA1_Channel2_IRQHandler(void) {
 			DMA_Tx_Busy = false;
 			while (!(USART3->SR & USART_FLAG_TC))
 				;
-			GPIO_ResetBits(GPIOC, GPIO_Pin_12);
+			GPIOC->BRR = GPIO_Pin_12;
 		}
 		break;
 	case 2:
@@ -505,7 +505,7 @@ extern "C" void DMA1_Channel2_IRQHandler(void) {
 			DMA_Tx_Busy = false;
 			while (!(USART3->SR & USART_FLAG_TC))
 				;
-			GPIO_ResetBits(GPIOC, GPIO_Pin_12);
+			GPIOC->BRR = GPIO_Pin_12;
 		}
 		break;
 	default:
@@ -543,5 +543,5 @@ void __attribute__((weak)) U_USART3Class::GPIOInit() {
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-	GPIO_ResetBits(GPIOC, GPIO_Pin_12);
+	GPIOC->BRR = GPIO_Pin_12;
 }

@@ -79,7 +79,7 @@ void PIDClass::Compute() {
 		iTerm = Min;
 	}
 
-	Last = PIDParam->Input;									//Get last pError
+	dTerm = Kd * (PIDParam->Input - Last);			//Compute DTerm
 	if (Mode == PIDMode_Diff) {
 		PIDParam->Output = Kp * pError + iTerm - dTerm + PIDParam->Output;
 	} else {
@@ -91,7 +91,8 @@ void PIDClass::Compute() {
 	} else if (PIDParam->Output < Min) {
 		PIDParam->Output = Min;
 	}
-	dTerm = Kd * (PIDParam->Input - Last);			//Compute DTerm
+
+	Last = PIDParam->Input;									//Get last pError
 }
 
 void PIDClass::Clear() {

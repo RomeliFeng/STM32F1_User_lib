@@ -103,6 +103,7 @@ public:
 	}
 	inline void println(float data, uint8_t ndigit = 2) {
 		print((double) data, ndigit);
+		println();
 	}
 
 	void print(uint8_t *data) {
